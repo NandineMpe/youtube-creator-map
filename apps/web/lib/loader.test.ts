@@ -394,6 +394,7 @@ describe("loadCountryDetail", () => {
       pageSize: 50,
       totalRows: 0,
     },
+    pageIndex: { representedVideoCountDesc: [] },
   };
 
   it("loads a verified shard", async () => {

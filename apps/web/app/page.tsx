@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ChoroplethMap } from "../components/ChoroplethMap";
+import { CountryDetailPanel } from "../components/CountryDetail";
 import { CountryTable } from "../components/CountryTable";
 import { ActiveFilterLabel, FilterPanel } from "../components/FilterPanel";
 import { CoveragePanel, HeadlineMetrics } from "../components/HeadlineMetrics";
@@ -310,6 +311,42 @@ export default function OverviewPage() {
           </div>
         </>
       )}
+
+      {view.country &&
+        (() => {
+          const selected = countries.find((c) => c.country === view.country);
+
+          // Requirement 10.10 forbids presenting zero totals as valid
+          // data. A country absent from this filter has no summary to
+          // show, so the panel is not rendered with fabricated zeros —
+          // the selection is simply reported as unavailable here.
+          if (!selected) {
+            return (
+              <div className="state-panel state-panel--empty" role="status">
+                <h2>{view.country} is not in the current filter</h2>
+                <p>
+                  No figures are shown, because this filter contains no records
+                  for that country. Widening the filter may bring it back.
+                </p>
+              </div>
+            );
+          }
+
+          // Requirement 14.4: the shard loads only once a country is
+          // selected. Requirement 10.9 keeps the URL, heading, map, and
+          // table selection pointing at one country state.
+          return (
+            <CountryDetailPanel
+              manifest={manifest}
+              summary={selected}
+              sortOrder={view.sort}
+              onSortChange={(sort) =>
+                update({ sort: sort as typeof view.sort })
+              }
+              onClose={() => update({ country: null })}
+            />
+          );
+        })()}
 
       <CoveragePanel coverage={overview.coverage} />
 

@@ -64,10 +64,25 @@ _PROHIBITED_VALUES: tuple[tuple[re.Pattern[str], str], ...] = (
 
 #: Fields whose values are prose and may contain identifier-shaped words.
 _PROSE_KEYS = re.compile(
-    r"^(note|notes|description|summary|methodology|label|title|displayName"
+    r"^(note|notes|description|summary|methodology|label|title"
     r"|attribution|license|disclaimer|caption|heading|text)$",
     re.I,
 )
+
+#: Fields exempt from the bare-video-id heuristic entirely.
+#:
+#: A channel display name comes from the channel metadata API and is a
+#: name, not an identifier. Real names collide with the 11-character
+#: base64url shape often enough to matter: 770 of the channels in the
+#: current corpus have names like "101Treesrus" or "1BreezyLife", and
+#: flagging them blocked the whole build.
+#:
+#: The exemption is narrow and safe. These fields remain subject to every
+#: key check and to the channel-id, YouTube-URL, and credential patterns —
+#: only the heuristic that guesses from shape alone is skipped, and that
+#: heuristic can never be decisive for a field whose contents are, by
+#: definition, whatever a human typed as their channel name.
+_NAME_KEYS = re.compile(r"^(displayName|datasetName|channelName)$", re.I)
 
 #: A value that is entirely a bare video identifier.
 _BARE_VIDEO_ID = re.compile(
@@ -137,6 +152,13 @@ def _inspect_value(value: str, key: str | None, path: str, findings: list[Findin
             return
 
     if _DIGEST_SHAPE.match(value):
+        return
+
+    # A name is a name. The shape heuristic cannot distinguish a channel
+    # called "101Treesrus" from a video id, and the field's meaning
+    # already settles it, so the guess is skipped rather than allowed to
+    # veto real data.
+    if key is not None and _NAME_KEYS.match(key):
         return
 
     # Under a prose key only a whole-string identifier is prohibited: an
@@ -333,6 +355,60 @@ def build_overview(
         "representedVideoCount": result.represented_video_count,
         "representedCountryCount": result.represented_country_count,
     }
+
+
+def creator_page_path(
+    release_id: str, country: str, sort_order: CreatorSortOrder, index: int
+) -> str:
+    """Return the delivery path for one creator page beyond the first.
+
+    Pages are addressed by ordinal within a sort order rather than by
+    cursor: a cursor is an opaque position, so naming files after them
+    would make the artifact set unlistable and undiagnosable. The client
+    still traverses by cursor; this is only where the bytes live.
+    """
+    return f"releases/{release_id}/countries/{country}/{sort_order.value}/page-{index}.json"
+
+
+def build_creator_pages(
+    country: str,
+    rows: list[CreatorRow],
+    *,
+    page_size: int,
+    sort_order: CreatorSortOrder = CreatorSortOrder.VIDEO_COUNT_DESC,
+) -> list[dict[str, Any]]:
+    """Build every creator page for one country and sort order.
+
+    Requirement 10.6 requires traversing all pages to present each
+    approved creator exactly once without omission. A shard that
+    advertises a next cursor but publishes no page for it cannot satisfy
+    that — following the cursor would 404 — so every page the traversal
+    can reach is emitted.
+    """
+    pages: list[dict[str, Any]] = []
+    cursor: str | None = None
+    # Bounded so a cursor that failed to advance surfaces as a build
+    # failure rather than an infinite loop.
+    max_pages = len(rows) // max(page_size, 1) + 2
+
+    for _ in range(max_pages):
+        page = paginate(rows, order=sort_order, page_size=page_size, cursor=cursor)
+        pages.append(
+            {
+                "country": country,
+                "sortOrder": sort_order.value,
+                "rows": [_creator_row_payload(r) for r in page.rows],
+                "nextCursor": page.next_cursor,
+                "pageSize": page.page_size,
+                "totalRows": page.total_rows,
+            }
+        )
+        if page.next_cursor is None:
+            return pages
+        cursor = page.next_cursor
+
+    msg = f"creator pagination for {country} did not terminate"
+    raise ValueError(msg)
 
 
 def build_country_detail(

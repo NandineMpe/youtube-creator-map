@@ -192,6 +192,22 @@ def test_methodology_prose_is_not_flagged() -> None:
     assert find_prohibited_content(payload) == []
 
 
+@pytest.mark.parametrize("name", ["101Treesrus", "1BreezyLife", "_le__s__ya_", "1DeathEater"])
+def test_real_channel_names_are_not_mistaken_for_identifiers(name: str) -> None:
+    """Observed on live data: 770 channels have 11-character names.
+
+    Flagging them blocked the entire build. The shape heuristic cannot
+    tell a name from an identifier, and the field's meaning already can.
+    """
+    assert find_prohibited_content({"displayName": name}) == []
+
+
+def test_name_exemption_still_catches_real_leaks() -> None:
+    """The exemption covers only the guess-from-shape heuristic."""
+    assert find_prohibited_content({"displayName": RAW_CHANNEL})
+    assert find_prohibited_content({"displayName": "see youtube.com/watch?v=dQw4w9WgXcQ"})
+
+
 def test_bare_identifier_under_a_prose_key_is_still_found() -> None:
     """The prose exemption must not become a hiding place."""
     assert find_prohibited_content({"note": "dQw4w9WgXcQ"})

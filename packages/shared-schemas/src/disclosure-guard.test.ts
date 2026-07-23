@@ -135,6 +135,30 @@ describe("prose fields keep detection without false positives", () => {
   });
 });
 
+describe("real channel names are not mistaken for identifiers", () => {
+  it.each(["101Treesrus", "1BreezyLife", "_le__s__ya_", "1DeathEater"])(
+    "accepts the channel name %s",
+    (name) => {
+      // Observed on live data: 770 channels have 11-character names, and
+      // flagging them blocked the entire build. The shape heuristic cannot
+      // tell a name from an identifier; the field's meaning already can.
+      expect(findProhibitedContent({ displayName: name })).toEqual([]);
+    },
+  );
+
+  it("still catches a real leak in a name field", () => {
+    // The exemption covers only the guess-from-shape heuristic.
+    expect(
+      findProhibitedContent({ displayName: "UC_x5XG1OV2P6uZZ5FSM9Ttw" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      findProhibitedContent({
+        displayName: "see youtube.com/watch?v=dQw4w9WgXcQ",
+      }).length,
+    ).toBeGreaterThan(0);
+  });
+});
+
 describe("exempt fields", () => {
   it("does not flag release IDs that resemble identifiers", () => {
     // Release IDs are timestamps and can coincidentally be 11 chars.

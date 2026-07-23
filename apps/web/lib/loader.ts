@@ -15,10 +15,12 @@
 import {
   activeReleasePointer,
   countryDetail,
+  creatorPage,
   overviewArtifact,
   releaseManifest,
   type ActiveReleasePointer,
   type CountryDetail,
+  type CreatorPage,
   type OverviewArtifact,
   type ReleaseManifest,
 } from "@creator-map/shared-schemas";
@@ -417,6 +419,73 @@ export async function loadCountryDetail(
     );
   }
   return detail;
+}
+
+/**
+ * Load one page of creator rows for a country.
+ *
+ * Pages are addressed by ordinal within a sort order because a cursor is
+ * an opaque position and cannot name a file. The detail shard enumerates
+ * the published pages, so traversal follows that list rather than
+ * constructing paths and hoping they exist (Requirement 10.6).
+ */
+export async function loadCreatorPage(
+  manifest: ReleaseManifest,
+  detail: CountryDetail,
+  sortOrder: string,
+  pageIndex: number,
+  options: FetchOptions = {},
+): Promise<CreatorPage> {
+  const paths = detail.pageIndex[sortOrder];
+
+  if (!paths || paths.length === 0) {
+    throw new ArtifactLoadError(
+      "not-found",
+      `${detail.country}/${sortOrder}`,
+      `this release publishes no pages for the ${sortOrder} order`,
+    );
+  }
+
+  if (pageIndex < 0 || pageIndex >= paths.length) {
+    throw new ArtifactLoadError(
+      "not-found",
+      `${detail.country}/${sortOrder}/page-${pageIndex}`,
+      `page ${pageIndex + 1} does not exist; this country has ${paths.length}`,
+    );
+  }
+
+  const path = paths[pageIndex];
+  const expected = manifest.artifactDigests[path];
+
+  if (!expected) {
+    throw new ArtifactLoadError(
+      "not-found",
+      path,
+      "the manifest lists no digest for this creator page",
+    );
+  }
+
+  const page = await loadVerified(path, expected, creatorPage, options);
+
+  // A page belonging to another country or order would silently mix
+  // results into a traversal that must present each creator exactly once.
+  if (page.country !== detail.country || page.sortOrder !== sortOrder) {
+    throw new ArtifactLoadError(
+      "mixed-release",
+      path,
+      "the creator page does not match the requested country and sort order",
+    );
+  }
+
+  return page;
+}
+
+/** How many creator pages a country publishes for one sort order. */
+export function creatorPageCount(
+  detail: CountryDetail,
+  sortOrder: string,
+): number {
+  return detail.pageIndex[sortOrder]?.length ?? 0;
 }
 
 /** The states a view can be in. Loading, empty, and error are distinct. */

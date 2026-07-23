@@ -206,11 +206,11 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Validates: Requirements 12.1-12.8, 12.12, 12.13**
 
 - [ ] 7. Implement consistent country details, accessibility, responsiveness, and browser privacy
-  - [ ] 7.1 Implement verified country-detail selection and recovery
+  - [x] 7.1 Implement verified country-detail selection and recovery
     - Synchronize click, keyboard, and table actions with heading, map/table selection, URL, aggregate totals, dataset breakdown, coverage, release/cutoff, and lazy detail loading.
     - Preserve valid context and never substitute zero, stale, partial, or Empty State data for a failed detail.
     - _Requirements: 10.1-10.4, 10.9-10.11, 12.8, 12.9, 14.4, 14.6-14.8_
-  - [ ] 7.2 Implement deterministic creator sorting and pagination UI
+  - [x] 7.2 Implement deterministic creator sorting and pagination UI
     - Render only disclosure-approved fields, stable cursor pages and sort state, exactly-once traversal, canonical URLs, long-name handling, and valid no-publishable-creator Empty States.
     - _Requirements: 7.2-7.4, 10.4-10.8, 10.11_
   - [ ] 7.3 Implement semantic interaction and accessible status infrastructure

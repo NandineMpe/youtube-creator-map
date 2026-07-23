@@ -94,7 +94,22 @@ const PROHIBITED_VALUES: ReadonlyArray<readonly [RegExp, string]> = [
  * to these fields, because none of those can occur innocently in prose.
  */
 const PROSE_KEYS =
-  /^(?:note|notes|description|summary|methodology|label|title|displayName|attribution|license|datasetName|disputedTerritoryTreatment|disclaimer|caption|heading|text|message|reason)$/i;
+  /^(?:note|notes|description|summary|methodology|label|title|attribution|license|disputedTerritoryTreatment|disclaimer|caption|heading|text|message|reason)$/i;
+
+/**
+ * Fields exempt from the bare-video-id heuristic entirely.
+ *
+ * A channel display name is a name, not an identifier, and real names
+ * collide with the 11-character base64url shape often enough to matter:
+ * 770 channels in the current corpus are named things like "101Treesrus".
+ * Every key check and the channel-id, URL, and credential patterns still
+ * apply; only the guess-from-shape heuristic is skipped, and it can never
+ * be decisive for a field whose contents are whatever a human typed.
+ *
+ * Must match the Python guard, or the two sides disagree about what is
+ * publishable and a release passes one and fails the other.
+ */
+const NAME_KEYS = /^(?:displayName|datasetName|channelName)$/i;
 
 /**
  * Fields whose values are legitimately identifier-shaped tokens.
@@ -138,6 +153,8 @@ function checkStringValue(
   // A digest is a legitimate 64-hex value; exempt it from the video-ID scan
   // rather than from the credential scans above.
   if (/^sha256:[a-f0-9]{64}$/.test(value)) return;
+
+  if (key !== null && NAME_KEYS.test(key)) return;
 
   if (key !== null && VIDEO_ID_EXEMPT_KEYS.test(key)) return;
 

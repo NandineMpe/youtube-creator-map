@@ -658,3 +658,115 @@ select {
   color: var(--text-muted);
   font-size: 0.9rem;
 }
+
+/* --- Country detail ------------------------------------------------------ */
+
+.detail-panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.detail-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.detail-panel__header h2 {
+  margin: 0;
+}
+
+.detail-panel__header button {
+  background: var(--bg-inset);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  cursor: pointer;
+  min-height: 2.5rem;
+}
+
+.detail-panel__context {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.metric-grid--compact {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin: var(--space-4) 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  background: var(--bg-inset);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  cursor: pointer;
+  min-height: 2.75rem;
+}
+
+.pagination button:disabled {
+  color: var(--text-dim);
+  cursor: not-allowed;
+  border-color: var(--border);
+}
+
+.pagination span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Requirement 10.12: below the small-screen breakpoint the detail becomes
+ * a bottom sheet with the same fields, controls, pagination, sort options,
+ * and accessible names. It is the same DOM repositioned, not a reduced
+ * variant — a separate mobile markup would be a second thing to keep
+ * correct, and the two would drift.
+ */
+@media (max-width: 48rem) {
+  .detail-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 85vh;
+    overflow-y: auto;
+    margin: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -8px 32px rgb(0 0 0 / 55%);
+    z-index: 20;
+  }
+
+  .detail-panel__header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-raised);
+    padding-bottom: var(--space-2);
+    margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
+    padding: var(--space-4) var(--space-4) var(--space-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pagination button {
+    flex: 1 1 8rem;
+    justify-content: center;
+  }
+}

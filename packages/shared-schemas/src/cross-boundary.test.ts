@@ -80,6 +80,11 @@ const countryDetailFixture = {
     pageSize: 50,
     totalRows: 1112,
   },
+  pageIndex: {
+    representedVideoCountDesc: [
+      "releases/r1/countries/XX/representedVideoCountDesc/page-0.json",
+    ],
+  },
 };
 
 const manifestFixture = {

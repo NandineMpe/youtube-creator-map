@@ -239,6 +239,11 @@ export const countryDetail = z
     coverage: coverageSummary,
     datasetBreakdown: z.array(datasetBreakdownEntry),
     firstPage: creatorPage,
+    // Every published page, per sort order, in traversal order.
+    // Requirement 10.6 needs traversal to reach each approved creator
+    // exactly once; a next cursor with no artifact behind it would 404
+    // mid-traversal, so the pages are enumerated rather than guessed.
+    pageIndex: z.record(z.string().min(1), z.array(z.string().min(1))),
   })
   .strict();
 

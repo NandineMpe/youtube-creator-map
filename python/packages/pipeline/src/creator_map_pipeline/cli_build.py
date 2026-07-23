@@ -27,9 +27,11 @@ from creator_map_pipeline.aggregate.artifacts import (
     approved_creator_rows,
     build_active_pointer,
     build_country_detail,
+    build_creator_pages,
     build_manifest,
     build_overview,
     country_shard_path,
+    creator_page_path,
 )
 from creator_map_pipeline.aggregate.builder import (
     AggregateInputs,
@@ -42,6 +44,7 @@ from creator_map_pipeline.aggregate.filters import (
     filter_key,
     overview_path,
 )
+from creator_map_pipeline.aggregate.pagination import CreatorSortOrder
 from creator_map_pipeline.database import (
     DatabaseConfigError,
     redacted_target,
@@ -181,6 +184,29 @@ def _build(args: argparse.Namespace, url: str) -> int:
                 rows=rows,
                 page_size=args.page_size,
             )
+
+            # Requirement 10.6: traversing every page must present each
+            # approved creator exactly once. A shard advertising a next
+            # cursor with no published page behind it would 404 mid-
+            # traversal, so every reachable page is emitted — for both
+            # sort orders, since a sort change restarts traversal
+            # (Requirement 10.5).
+            page_index: dict[str, list[str]] = {}
+            for sort_order in CreatorSortOrder:
+                pages = build_creator_pages(
+                    country,
+                    rows,
+                    page_size=args.page_size,
+                    sort_order=sort_order,
+                )
+                paths: list[str] = []
+                for index, page in enumerate(pages):
+                    path = creator_page_path(release_id, country, sort_order, index)
+                    artifacts.add(path, page)
+                    paths.append(path)
+                page_index[sort_order.value] = paths
+
+            detail["pageIndex"] = page_index
             artifacts.add(country_shard_path(release_id, country), detail)
             shard_count += 1
 
