@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { ChoroplethMap } from "../components/ChoroplethMap";
 import { CountryTable } from "../components/CountryTable";
 import { ActiveFilterLabel, FilterPanel } from "../components/FilterPanel";
 import { CoveragePanel, HeadlineMetrics } from "../components/HeadlineMetrics";
@@ -167,16 +168,59 @@ export default function OverviewPage() {
           body="The selected datasets contain no records that resolved to a country."
         />
       ) : (
-        <div className="explore-layout">
-          <CountryTable
-            countries={countries}
-            metric={metric}
-            scale={scale}
-            selectedCountry={view.country}
-            onSelect={(country) => update({ country })}
-          />
-          <Legend scale={scale} metric={metric} />
-        </div>
+        <>
+          <div className="control-row">
+            {/* Requirement 9.10: switching views preserves the release,
+                filter, selected country, metric, and values. Only the
+                presentation changes, so the toggle writes one field. */}
+            <span id="view-toggle-label">View</span>
+            <div
+              className="view-toggle"
+              role="group"
+              aria-labelledby="view-toggle-label"
+            >
+              <button
+                type="button"
+                aria-pressed={view.view === "map"}
+                onClick={() => update({ view: "map" })}
+              >
+                Map
+              </button>
+              <button
+                type="button"
+                aria-pressed={view.view === "table"}
+                onClick={() => update({ view: "table" })}
+              >
+                Table only
+              </button>
+            </div>
+          </div>
+
+          <div className="explore-layout">
+            <div>
+              {view.view === "map" && (
+                <ChoroplethMap
+                  countries={countries}
+                  metric={metric}
+                  scale={scale}
+                  selectedCountry={view.country}
+                  onSelect={(country) => update({ country })}
+                />
+              )}
+              {/* The table renders in both modes. Requirement 13.4 makes
+                  it the keyboard and screen-reader route to every country,
+                  so hiding it in map mode would remove that route. */}
+              <CountryTable
+                countries={countries}
+                metric={metric}
+                scale={scale}
+                selectedCountry={view.country}
+                onSelect={(country) => update({ country })}
+              />
+            </div>
+            <Legend scale={scale} metric={metric} />
+          </div>
+        </>
       )}
 
       <CoveragePanel coverage={overview.coverage} />

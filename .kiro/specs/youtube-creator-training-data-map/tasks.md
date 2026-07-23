@@ -191,7 +191,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Render active filter/release/cutoff, exact count units, full resolution partitions, comparison labels, Unknown Country card, zero-input Empty State, loading states, and recoverable errors from verified artifacts.
     - Update all overview surfaces and URL atomically on filter changes.
     - _Requirements: 6.7-6.11, 9.1, 9.6-9.8, 9.12, 12.3, 12.4, 12.7-12.9_
-  - [ ] 6.5 Implement MapLibre choropleth and authoritative sortable country table
+  - [x] 6.5 Implement MapLibre choropleth and authoritative sortable country table
     - Derive map and table from the same summaries; implement exact quantile/log bins, no-data styling, pattern/text equivalents, hover/focus parity, metric switching, Unknown outside geography, and preserved selection across views.
     - Include versioned Natural Earth-derived boundaries and metadata without location inference.
     - _Requirements: 6.8, 9.2-9.5, 9.7, 9.9-9.11, 12.10, 12.11, 13.4, 13.8_
