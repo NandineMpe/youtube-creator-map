@@ -19,6 +19,7 @@ from pathlib import Path
 
 import psycopg
 from creator_map_schemas import DisclosurePolicy
+from psycopg.types.json import Jsonb
 
 from creator_map_pipeline.aggregate.artifacts import (
     ArtifactSet,
@@ -126,6 +127,23 @@ def _build(args: argparse.Namespace, url: str) -> int:
             }
             for entry in registry.methodology_entries()
         ]
+
+        # Record the governing policy before anything references it. The
+        # release table's foreign key requires this, which is Requirement
+        # 7.1 expressed in the schema: a release cannot cite a policy that
+        # was never approved and stored.
+        cur.execute(
+            "insert into governance.disclosure_policy "
+            "(policy_id, version, document, approved_at, approved_by) "
+            "values (%s,%s,%s,%s,%s) on conflict (policy_id, version) do nothing",
+            (
+                _DEV_POLICY.policy_id,
+                _DEV_POLICY.version,
+                Jsonb(_DEV_POLICY.model_dump(mode="json")),
+                _DEV_POLICY.approved_at,
+                args.actor,
+            ),
+        )
 
         engine = DisclosureEngine(_DEV_POLICY, public_key_secret=secret)
         observed = cutoff.date().isoformat()

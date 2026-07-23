@@ -145,33 +145,33 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Validates: Requirements 7.2-7.7, 7.10, 7.11**
 
 - [ ] 5. Validate, stage, activate, and roll back immutable releases
-  - [ ] 5.1 Implement release-candidate assembly and digest manifests
+  - [x] 5.1 Implement release-candidate assembly and digest manifests
     - Pin snapshots, cutoff, filters, methodology/policy versions, generation time, complete artifact inventory, cryptographic digests, and immutable cache metadata in deterministic manifests.
     - _Requirements: 8.1, 14.10_
-  - [ ] 5.2 Implement composable release validation gates and reports
+  - [x] 5.2 Implement composable release validation gates and reports
     - Gate arithmetic, provenance, disclosure, neutral language, schemas, digests, accessibility smoke, citations/terms, payload size, lockfiles/licenses/vulnerabilities, secret scans, and required security policy checks.
     - Fail closed on failed or incomplete gates and report each internal result without changing the active release.
     - _Requirements: 8.2, 8.3, 12.12, 12.13, 14.1, 15.3, 15.14, 15.15_
-  - [ ] 5.3 Implement versioned staging and full artifact verification
+  - [x] 5.3 Implement versioned staging and full artifact verification
     - Stage a complete candidate in object storage, recompute every digest, reject missing/mismatched artifacts, and serve only manifest-matching immutable files.
     - _Requirements: 8.4-8.6, 8.8, 14.10_
-  - [ ] 5.4 Implement atomic activation, verified rollback, and historical immutability
+  - [x] 5.4 Implement atomic activation, verified rollback, and historical immutability
     - Swap only the separately refreshable active pointer after full verification, verify rollback targets before one-step restoration, and prevent later inputs from mutating prior release artifacts/counts.
     - _Requirements: 8.7-8.12, 14.9-14.11_
-  - [ ] 5.5 Wire the release asset graph and secured release CLI
+  - [x] 5.5 Wire the release asset graph and secured release CLI
     - Build aggregate/detail/methodology artifacts, run every gate, stage, activate, invalidate policy-affected shards, and roll back through authenticated, authorized, rate-limited, durably audited commands.
     - Keep the previous verified release active on every failure path.
     - _Requirements: 7.8, 8.1-8.12, 14.9-14.11, 15.16-15.22_
-  - [ ] 5.6 Checkpoint — validate release alignment before public-app work
+  - [x] 5.6 Checkpoint — validate release alignment before public-app work
     - Reread `design.md` and `requirements.md`; inspect tasks 5.1-5.5 and prior outputs for complete gates, immutable artifacts, atomicity, rollback, cache policy, and administrative security; execute synthetic release validation and correct drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 5.7 Write synthetic release contract and failure-path integration tests
+  - [x]* 5.7 Write synthetic release contract and failure-path integration tests
     - Build a complete release; verify counts, schemas, digests, security/privacy/language gates, missing/corrupt artifacts, policy invalidation, activation failure, rollback failure/success, and prior-release availability.
     - _Requirements: 7.8, 8.1-8.12, 12.12, 14.1, 14.9-14.11, 15.3, 15.14, 15.15_
-  - [ ]* 5.8 Write property test for historical immutability
+  - [x]* 5.8 Write property test for historical immutability
     - **Property 11: Historical Immutability** — generate later snapshots/observations and prove published manifest bytes, artifact digests, and counts remain unchanged.
     - **Validates: Requirements 8.9**
-  - [ ]* 5.9 Write property test for atomic publication
+  - [x]* 5.9 Write property test for atomic publication
     - **Property 15: Atomic Publication** — generate staging, verification, activation, and rollback failures and prove observers see only the complete previous or complete new verified release.
     - **Validates: Requirements 8.4-8.8, 8.10-8.12**
 

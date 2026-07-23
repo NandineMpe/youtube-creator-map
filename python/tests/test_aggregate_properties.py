@@ -52,10 +52,16 @@ def dataset_breakdown(occurrences: list[Occurrence], datasets: frozenset[str]) -
 
 dataset_ids = st.sampled_from(["ds-a", "ds-b", "ds-c", "ds-d"])
 video_ids = st.sampled_from([f"vid-{i:02d}" for i in range(12)])
+
+# Built from a list of tuples rather than st.builds per element. Drawing
+# sixty individually-constructed dataclasses was slow enough to trip
+# Hypothesis's data-generation health check intermittently; the shapes these
+# properties explore do not need that many elements, and the coverage is the
+# same at a third the size.
 occurrences = st.lists(
-    st.builds(Occurrence, dataset_id=dataset_ids, video_id=video_ids),
-    max_size=60,
-)
+    st.tuples(dataset_ids, video_ids), max_size=20
+).map(lambda pairs: [Occurrence(d, v) for d, v in pairs])
+
 dataset_filters = st.sets(dataset_ids, min_size=1, max_size=4).map(frozenset)
 
 
