@@ -1,0 +1,49 @@
+{
+  "name": "youtube-creator-map-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "format": "npm run format:python && npm run format:web",
+    "format:check": "npm run format:check:python && npm run format:check:web",
+    "format:python": "python -m ruff format python",
+    "format:check:python": "python -m ruff format --check python",
+    "format:web": "prettier --write \"apps/**/*.{ts,tsx,json}\" \"packages/**/*.{ts,tsx,json}\" \"*.{json,mjs}\"",
+    "format:check:web": "prettier --check \"apps/**/*.{ts,tsx,json}\" \"packages/**/*.{ts,tsx,json}\" \"*.{json,mjs}\"",
+    "lint": "npm run lint:python && npm run lint:web && npm run lint:boundaries",
+    "lint:python": "python -m ruff check python",
+    "lint:web": "eslint apps packages",
+    "lint:boundaries": "lint-imports",
+    "typecheck": "npm run typecheck:python && npm run typecheck:web",
+    "typecheck:python": "python -m mypy",
+    "typecheck:web": "tsc --noEmit -p packages/shared-schemas && tsc --noEmit -p apps/web",
+    "test": "npm run test:python && npm run test:web",
+    "test:python": "python -m pytest",
+    "test:web": "vitest run",
+    "build": "npm run build --workspace @creator-map/web",
+    "ci": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "8.5.10",
+      "sharp": "0.35.0"
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "9.29.0",
+    "@types/node": "22.15.32",
+    "eslint": "9.29.0",
+    "eslint-config-next": "15.5.21",
+    "prettier": "3.5.3",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.34.1",
+    "vitest": "3.2.7"
+  }
+}

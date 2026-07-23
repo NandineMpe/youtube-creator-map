@@ -1,0 +1,19 @@
+[importlinter]
+root_packages =
+    creator_map_schemas
+    creator_map_restricted
+    creator_map_pipeline
+
+[importlinter:contract:schemas-independent]
+name = Shared schemas are independent
+source_modules = creator_map_schemas
+forbidden_modules =
+    creator_map_restricted
+    creator_map_pipeline
+type = forbidden
+
+[importlinter:contract:restricted-independent-of-pipeline]
+name = Restricted infrastructure does not depend on pipeline orchestration
+source_modules = creator_map_restricted
+forbidden_modules = creator_map_pipeline
+type = forbidden

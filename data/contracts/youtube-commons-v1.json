@@ -1,0 +1,13 @@
+{
+  "id": "youtube-commons",
+  "display_name": "YouTube-Commons (PleIAs)",
+  "version": "cctube_0-2024",
+  "corpus_class": "Comparison",
+  "source_kind": "SubtitleIndex",
+  "access_status": "Approved",
+  "snapshot_digest": "sha256:415b883661aac9e47f3a8109b03db5ffd28f4caaeeaddbbab87278da78798b3f",
+  "adapter_version": "1.0.0",
+  "occurrence_unit": "Row",
+  "source_citation": "https://huggingface.co/datasets/PleIAs/YouTube-Commons",
+  "terms_review_id": "review-yt-commons-cc-by-4.0"
+}

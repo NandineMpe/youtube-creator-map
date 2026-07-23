@@ -1,0 +1,2 @@
+jsonschema==4.24.0
+pydantic==2.11.7

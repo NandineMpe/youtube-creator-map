@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    # pip lock files are interpreter/platform specific. Keep generation and
+    # installation on the same documented target as the committed lock.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install Python dependencies from lock
+        run: |
+          python -m pip install --upgrade "pip==26.1.2"
+          python -m pip install -r pylock.toml
+          python -m pip install --no-deps -e python/packages/schemas -e python/packages/restricted-infra -e python/packages/pipeline
+      - name: Validate workspaces
+        shell: pwsh
+        run: ./scripts/ci.ps1
