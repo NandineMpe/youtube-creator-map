@@ -127,14 +127,10 @@ class DisclosureEngine:
         records = self._suppressions.get(candidate.channel_id, [])
         full_scope = [r for r in records if r.scope is SuppressionScope.FULL]
         if full_scope:
-            return DisclosureDecision(
-                permitted=False, outcome=DisclosureOutcome.SUPPRESSED
-            )
+            return DisclosureDecision(permitted=False, outcome=DisclosureOutcome.SUPPRESSED)
 
         if candidate.represented_video_count < self._policy.min_represented_video_count:
-            return DisclosureDecision(
-                permitted=False, outcome=DisclosureOutcome.BELOW_THRESHOLD
-            )
+            return DisclosureDecision(permitted=False, outcome=DisclosureOutcome.BELOW_THRESHOLD)
 
         # A creator with no display name cannot satisfy a policy that
         # requires one. Requirement 7.7: rather than publishing a blank or

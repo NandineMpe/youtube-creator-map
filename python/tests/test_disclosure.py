@@ -98,9 +98,7 @@ def test_public_key_is_stable_for_the_same_channel() -> None:
 
 
 def test_public_key_differs_per_channel() -> None:
-    assert public_channel_key("UC_a", secret=SECRET) != public_channel_key(
-        "UC_b", secret=SECRET
-    )
+    assert public_channel_key("UC_a", secret=SECRET) != public_channel_key("UC_b", secret=SECRET)
 
 
 def test_public_key_depends_on_the_secret() -> None:
@@ -166,9 +164,7 @@ def test_creator_missing_a_required_field_is_withheld() -> None:
 
 
 def test_full_suppression_excludes_the_creator() -> None:
-    engine = DisclosureEngine(
-        policy(), suppressions=(suppression(),), public_key_secret=SECRET
-    )
+    engine = DisclosureEngine(policy(), suppressions=(suppression(),), public_key_secret=SECRET)
     decision = engine.decide(candidate())
 
     assert not decision.permitted

@@ -41,7 +41,13 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP", "S"]
 
 [tool.ruff.lint.per-file-ignores]
-"python/tests/**" = ["S101"]
+# S101: assert is the point of a test.
+# S105/S106: test-only secret literals, never real credentials.
+"python/tests/**" = ["S101", "S105", "S106"]
+# S608: aggregation composes module-level CTE constants into statement text.
+# Every caller-supplied value is bound as a parameter and the one numeric
+# interpolation passes through int(); see the module docstring.
+"python/packages/pipeline/src/creator_map_pipeline/aggregate/builder.py" = ["S608"]
 
 [tool.mypy]
 python_version = "3.11"

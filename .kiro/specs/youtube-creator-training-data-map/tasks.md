@@ -68,79 +68,79 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Validates: Requirements 2.12-2.14**
 
 - [ ] 3. Implement cached, resumable, quota-safe enrichment
-  - [ ] 3.1 Implement distinct work planning, append-only observation caching, and cutoff selection
+  - [x] 3.1 Implement distinct work planning, append-only observation caching, and cutoff selection
     - Plan one video/channel work item per entity and policy, preserve dataset membership separately, reuse eligible cache entries, and select one observation deterministically at a pinned cutoff.
     - _Requirements: 3.1-3.4, 3.9-3.12, 4.1_
-  - [ ] 3.2 Implement transactional leases and idempotent batch checkpoints
+  - [x] 3.2 Implement transactional leases and idempotent batch checkpoints
     - Claim at most 50 distinct eligible items for one authenticated worker, reclaim expired leases, and atomically commit outcomes, state transitions, response digests, and quota usage with replay safety.
     - _Requirements: 4.2-4.7_
-  - [ ] 3.3 Implement the minimal-field YouTube metadata client
+  - [x] 3.3 Implement the minimal-field YouTube metadata client
     - Resolve video-to-channel and channel display/country observations in bounded batches, classify omitted IDs as unavailable-unclassified, normalize only declared country, and append response-digested observations.
     - Request no media, transcript, thumbnail, contact, or unnecessary metadata and enforce approved endpoint egress.
     - _Requirements: 3.5-3.9, 4.18, 15.10-15.12_
-  - [ ] 3.4 Implement retry, quota-reserve, and operator-halt state machines
+  - [x] 3.4 Implement retry, quota-reserve, and operator-halt state machines
     - Add bounded exponential backoff with jitter, attempt-terminal transitions, zero-cost claim handling, quota projection, credential/policy halts, alerts, and authorized recovery scopes.
     - _Requirements: 4.8-4.17_
-  - [ ] 3.5 Wire video and channel enrichment assets plus secured operator commands
+  - [x] 3.5 Wire video and channel enrichment assets plus secured operator commands
     - Compose planning, caching, leasing, API batches, checkpoints, resume, quota reset, halt recovery, and summaries in Dagster and the curator CLI.
     - Require authentication, authorization, operation-specific rate limiting, durable auditing, and rollback/denial when audit writes fail.
     - _Requirements: 3.1-3.12, 4.1-4.18, 15.16-15.22_
-  - [ ] 3.6 Checkpoint — validate enrichment alignment before aggregation work
+  - [x] 3.6 Checkpoint — validate enrichment alignment before aggregation work
     - Reread `design.md` and `requirements.md`; verify tasks 3.1-3.5 and prior work preserve append-only history, exact work uniqueness, lease/checkpoint semantics, quota reserve, no inferred country, minimal fields, and administrative controls; run targeted validation and fix drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 3.7 Write fake-API and PostgreSQL enrichment integration tests
+  - [x]* 3.7 Write fake-API and PostgreSQL enrichment integration tests
     - Cover 0/1/50 IDs, omitted IDs, cache reuse, response drift, concurrent/expired leases, checkpoint rollback/replay, retry headers, quota boundaries, invalid credentials, operator recovery, and interrupted restarts.
     - _Requirements: 3.1-3.12, 4.1-4.18, 15.10-15.12, 15.16-15.21_
-  - [ ]* 3.8 Write property test for no inferred country
+  - [x]* 3.8 Write property test for no inferred country
     - **Property 6: No Inferred Country** — generate channel metadata with absent/unsupported country plus arbitrary other fields and prove the selected country is always Unknown.
     - **Validates: Requirements 3.8, 5.7**
-  - [ ]* 3.9 Write property test for resumption equivalence
+  - [x]* 3.9 Write property test for resumption equivalence
     - **Property 10: Resumption Equivalence** — generate interruption, lease-expiry, checkpoint-replay, and retry schedules and prove the committed observation set equals uninterrupted execution for fixed observations and cutoff.
     - **Validates: Requirements 4.4-4.7, 4.17**
 
 - [ ] 4. Build exact aggregates and enforce the publication boundary
-  - [ ] 4.1 Implement deterministic DuckDB filter and distinct-set aggregation
+  - [x] 4.1 Implement deterministic DuckDB filter and distinct-set aggregation
     - Build exact occurrence, represented-video, creator, country, and per-dataset counts from pinned Parquet/observation inputs with dataset and corpus-class isolation and deterministic ordering.
     - Preserve cross-dataset membership while deduplicating only at declared count boundaries.
     - _Requirements: 5.1-5.5, 5.8-5.13_
-  - [ ] 4.2 Implement resolution coverage and Unknown Country aggregation
+  - [x] 4.2 Implement resolution coverage and Unknown Country aggregation
     - Partition every distinct filtered video into exactly one resolution state, reconcile channel country coverage, and retain unresolved and unknown totals without contributing unresolved videos to creator/country counts.
     - _Requirements: 5.5-5.7, 6.1-6.6_
-  - [ ] 4.3 Implement creator summaries, deterministic detail sorting, and cursor pages
+  - [x] 4.3 Implement creator summaries, deterministic detail sorting, and cursor pages
     - Compute distinct represented videos and per-dataset breakdowns per channel, deterministic tie-breakers/cursors, configured page sizes, and complete exactly-once traversal.
     - _Requirements: 5.3-5.5, 10.2-10.8, 14.5_
-  - [ ] 4.4 Implement the versioned disclosure-policy engine
+  - [x] 4.4 Implement the versioned disclosure-policy engine
     - Fail closed for missing/invalid policy, apply creator and field rules plus corrections/opt-outs/suppressions, derive public channel keys, and expose no suppression reason.
     - Ensure uncertain permissions are prohibited and aggregate behavior follows the pinned policy.
     - _Requirements: 7.1-7.4, 7.7, 7.8_
-  - [ ] 4.5 Generate disclosure-reviewed public aggregate and detail artifacts
+  - [x] 4.5 Generate disclosure-reviewed public aggregate and detail artifacts
     - Serialize schemas from task 1.5, recursively inspect keys/values/metadata/indexes, reject prohibited or restricted content, omit suppressed identities from every public surface, and emit methodology/coverage context.
     - _Requirements: 6.7-6.11, 7.2-7.7, 7.9-7.11, 10.3-10.7, 12.1-12.11_
   - [ ] 4.6 Checkpoint — validate aggregation and disclosure alignment before release work
     - Reread `design.md` and `requirements.md`; reconcile tasks 4.1-4.5 against exact-set, coverage, detail-page, disclosure, and publication-boundary clauses; run aggregate/schema/privacy validation and correct all drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 4.7 Write aggregate, pagination, disclosure, and artifact unit tests
+  - [x]* 4.7 Write aggregate, pagination, disclosure, and artifact unit tests
     - Cover duplicate evidence, overlap, empty filters, all partition states, unsupported countries, stable sorting/cursors, threshold edges, suppressions, recursive prohibited fields, and deterministic bytes.
     - _Requirements: 5.1-5.13, 6.1-6.6, 7.1-7.8, 10.5-10.7_
-  - [ ]* 4.8 Write property test for within-dataset deduplication
+  - [x]* 4.8 Write property test for within-dataset deduplication
     - **Property 3: Within-Dataset Deduplication** — prove added duplicate occurrences change occurrence counts but never distinct represented-video counts.
     - **Validates: Requirements 5.1, 5.2**
-  - [ ]* 4.9 Write property test for cross-dataset union semantics
+  - [x]* 4.9 Write property test for cross-dataset union semantics
     - **Property 4: Cross-Dataset Union Semantics** — prove combined video sets are exact unions and overlaps count once combined but once in each applicable breakdown.
     - **Validates: Requirements 5.3, 5.12**
-  - [ ]* 4.10 Write property test for creator attribution uniqueness
+  - [x]* 4.10 Write property test for creator attribution uniqueness
     - **Property 5: Creator Attribution Uniqueness** — prove each resolved video contributes to at most one channel, country bucket, and creator represented-video count.
     - **Validates: Requirements 5.4-5.6**
-  - [ ]* 4.11 Write property test for coverage partition
+  - [x]* 4.11 Write property test for coverage partition
     - **Property 7: Coverage Partition** — prove generated resolution states are disjoint and exhaustive and channel country partitions reconcile.
     - **Validates: Requirements 6.1-6.6**
-  - [ ]* 4.12 Write property test for filter isolation
+  - [x]* 4.12 Write property test for filter isolation
     - **Property 8: Filter Isolation** — generate dataset/corpus filters and prove excluded occurrences cannot affect any count.
     - **Validates: Requirements 5.8, 5.9**
-  - [ ]* 4.13 Write property test for monotonic union of resolved identities
+  - [x]* 4.13 Write property test for monotonic union of resolved identities
     - **Property 9: Monotonic Union of Resolved Identities** — prove subset filter video sets and resolved creator/video totals cannot exceed their supersets.
     - **Validates: Requirements 5.10, 5.11**
-  - [ ]* 4.14 Write property test for disclosure noninterference
+  - [x]* 4.14 Write property test for disclosure noninterference
     - **Property 13: Disclosure Noninterference** — recursively inspect generated artifacts, indexes, telemetry, logs, errors, and payload fixtures and prove suppressed identities never appear.
     - **Validates: Requirements 7.2-7.7, 7.10, 7.11**
 

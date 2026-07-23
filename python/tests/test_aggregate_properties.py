@@ -26,9 +26,7 @@ class Occurrence:
     video_id: str
 
 
-def represented_videos(
-    occurrences: list[Occurrence], datasets: frozenset[str]
-) -> set[str]:
+def represented_videos(occurrences: list[Occurrence], datasets: frozenset[str]) -> set[str]:
     """Distinct video identifiers admitted by a dataset filter.
 
     Requirement 5.1: cardinality of the distinct set, never a row count.
@@ -36,16 +34,12 @@ def represented_videos(
     return {o.video_id for o in occurrences if o.dataset_id in datasets}
 
 
-def source_occurrence_count(
-    occurrences: list[Occurrence], datasets: frozenset[str]
-) -> int:
+def source_occurrence_count(occurrences: list[Occurrence], datasets: frozenset[str]) -> int:
     """Retained rows admitted by a dataset filter (Requirement 5.2)."""
     return sum(1 for o in occurrences if o.dataset_id in datasets)
 
 
-def dataset_breakdown(
-    occurrences: list[Occurrence], datasets: frozenset[str]
-) -> dict[str, int]:
+def dataset_breakdown(occurrences: list[Occurrence], datasets: frozenset[str]) -> dict[str, int]:
     """Per-dataset distinct video counts (Requirement 5.3)."""
     breakdown: dict[str, set[str]] = {}
     for occurrence in occurrences:
@@ -173,12 +167,8 @@ def test_property_subset_totals_never_exceed_superset_totals(
     """Requirement 5.11: counts are monotonic under filter widening."""
     superset = subset | {extra}
 
-    assert len(represented_videos(items, subset)) <= len(
-        represented_videos(items, superset)
-    )
-    assert source_occurrence_count(items, subset) <= source_occurrence_count(
-        items, superset
-    )
+    assert len(represented_videos(items, subset)) <= len(represented_videos(items, superset))
+    assert source_occurrence_count(items, subset) <= source_occurrence_count(items, superset)
 
 
 # --- Property 5: Creator Attribution Uniqueness ---------------------------
@@ -268,10 +258,7 @@ def test_property_partition_is_exhaustive_and_disjoint(
     assert partition.distinct_input_video_count == total
     from creator_map_schemas import VideoResolutionPartitionState
 
-    assert (
-        sum(partition.count_for(state) for state in VideoResolutionPartitionState)
-        == total
-    )
+    assert sum(partition.count_for(state) for state in VideoResolutionPartitionState) == total
 
 
 @given(

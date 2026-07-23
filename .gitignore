@@ -22,3 +22,4 @@ coverage/
 # records what was ingested without carrying the bytes.
 data/snapshots/
 .DS_Store
+dist/
