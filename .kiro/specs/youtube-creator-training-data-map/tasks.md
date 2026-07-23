@@ -213,14 +213,14 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
   - [x] 7.2 Implement deterministic creator sorting and pagination UI
     - Render only disclosure-approved fields, stable cursor pages and sort state, exactly-once traversal, canonical URLs, long-name handling, and valid no-publishable-creator Empty States.
     - _Requirements: 7.2-7.4, 10.4-10.8, 10.11_
-  - [ ] 7.3 Implement semantic interaction and accessible status infrastructure
+  - [x] 7.3 Implement semantic interaction and accessible status infrastructure
     - Add semantic headings/landmarks, labeled controls, visible focus, logical focus restoration, live filter/loading/completion announcements, status/error relationships, and Enter/Space parity with pointer actions.
     - Ensure the country table is the complete keyboard/screen-reader equivalent of map discovery.
     - _Requirements: 9.5, 9.9, 13.1-13.5, 13.8, 13.9, 13.11_
-  - [ ] 7.4 Implement responsive detail presentation and user-preference styles
+  - [x] 7.4 Implement responsive detail presentation and user-preference styles
     - Provide equivalent desktop side panel and small-screen bottom sheet controls/content, WCAG AA contrast, non-color patterns/text, reduced-motion behavior, touch targets, reflow, and 200% zoom support without two-dimensional scrolling.
     - _Requirements: 10.12, 13.1, 13.6, 13.7, 13.10_
-  - [ ] 7.5 Implement public privacy, SEO, telemetry, and browser-security controls
+  - [x] 7.5 Implement public privacy, SEO, telemetry, and browser-security controls
     - Exclude creator details from indexing/sitemaps, emit only optional coarse policy-approved telemetry, apply restrictive CSP/HSTS/SRI as applicable, and prevent anonymous mutation or secret-bearing browser configuration.
     - Keep methodology and correction/opt-out access available from details, empty states, and errors.
     - _Requirements: 7.3, 7.9-7.11, 12.9, 15.3, 15.13, 15.19_

@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { describeFilterChange, useAnnouncer } from "../components/Announcer";
 import { ChoroplethMap } from "../components/ChoroplethMap";
 import { CountryDetailPanel } from "../components/CountryDetail";
 import { CountryTable } from "../components/CountryTable";
 import { ActiveFilterLabel, FilterPanel } from "../components/FilterPanel";
 import { CoveragePanel, HeadlineMetrics } from "../components/HeadlineMetrics";
 import { Legend } from "../components/Legend";
+import { NoIndexWhenDetail } from "../components/NoIndexWhenDetail";
 import { DatasetCitations, ReleaseContext } from "../components/ReleaseContext";
 import {
   CorrectionNotice,
@@ -18,7 +20,7 @@ import {
 import type { OverviewArtifact } from "@creator-map/shared-schemas";
 
 import { computeBins } from "../lib/bins";
-import { metricValue } from "../lib/format";
+import { countryLabel, metricValue } from "../lib/format";
 import {
   ArtifactLoadError,
   loadActiveRelease,
@@ -57,6 +59,7 @@ export default function OverviewPage() {
   const [filterError, setFilterError] = useState<ArtifactLoadError | null>(
     null,
   );
+  const { announce, alert } = useAnnouncer();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -111,6 +114,7 @@ export default function OverviewPage() {
 
     void (async () => {
       setFilterPending(true);
+      announce("Loading figures for the selected filter.");
       try {
         const { overview, exact } = await loadFilteredOverview(
           release.manifest,
@@ -121,6 +125,21 @@ export default function OverviewPage() {
         setFilteredOverview(overview);
         setFilterExact(exact);
         setFilterError(null);
+
+        // Requirement 13.3: the resulting filter, the summary update, and
+        // completion, in the order a sighted reader meets them.
+        announce(
+          describeFilterChange({
+            datasetLabel:
+              wanted.datasets.length === 0
+                ? `all ${release.manifest.datasets.length} datasets`
+                : wanted.datasets.join(" and "),
+            creators: overview.creatorCount,
+            videos: overview.representedVideoCount,
+            countries: overview.countries.length,
+            exact,
+          }),
+        );
       } catch (caught) {
         if (cancelled) return;
         // Requirement 9.12: a failed filter update preserves the
@@ -129,6 +148,11 @@ export default function OverviewPage() {
           caught instanceof ArtifactLoadError
             ? caught
             : new ArtifactLoadError("network", "overview", "filter failed"),
+        );
+        // Assertive: a stale figure being read aloud after a failure is
+        // worse than interrupting.
+        alert(
+          "That filter could not be loaded. The figures shown are the ones already verified.",
         );
       } finally {
         if (!cancelled) setFilterPending(false);
@@ -151,6 +175,26 @@ export default function OverviewPage() {
       return next;
     });
   }, []);
+
+  /**
+   * Select a country from any interaction path.
+   *
+   * Requirement 13.11 requires pointer, keyboard, map, and table paths
+   * performing the same action to produce matching state. Routing them
+   * all through one function is what makes that true rather than a
+   * coincidence of four call sites agreeing.
+   */
+  const selectCountry = useCallback(
+    (country: string | null) => {
+      update({ country });
+      if (country) {
+        announce(`Selected ${countryLabel(country)}. Loading its detail.`);
+      } else {
+        announce("Country selection cleared. Showing the whole filter.");
+      }
+    },
+    [update, announce],
+  );
 
   // The filtered aggregate once it has loaded; the default until then.
   const activeOverview = filteredOverview ?? release?.overview ?? null;
@@ -194,6 +238,9 @@ export default function OverviewPage() {
         manifest={manifest}
         datasetCount={manifest.datasets.length}
       />
+
+      {/* Requirement 7.10: exclusion applies while detail is shown. */}
+      <NoIndexWhenDetail active={view.country !== null} />
 
       <CorrectionNotice corrections={corrections} />
 
@@ -293,7 +340,7 @@ export default function OverviewPage() {
                   metric={metric}
                   scale={scale}
                   selectedCountry={view.country}
-                  onSelect={(country) => update({ country })}
+                  onSelect={selectCountry}
                 />
               )}
               {/* The table renders in both modes. Requirement 13.4 makes
@@ -304,7 +351,7 @@ export default function OverviewPage() {
                 metric={metric}
                 scale={scale}
                 selectedCountry={view.country}
-                onSelect={(country) => update({ country })}
+                onSelect={selectCountry}
               />
             </div>
             <Legend scale={scale} metric={metric} />
@@ -343,7 +390,7 @@ export default function OverviewPage() {
               onSortChange={(sort) =>
                 update({ sort: sort as typeof view.sort })
               }
-              onClose={() => update({ country: null })}
+              onClose={() => selectCountry(null)}
             />
           );
         })()}
