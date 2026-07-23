@@ -246,7 +246,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Orchestrate arithmetic/provenance/privacy/language/schema/digest/accessibility/security/citation/terms checks, emit machine-readable and human-readable reports, and prevent activation on failure or incomplete validation.
     - Include curator sign-off inputs as authenticated versioned records rather than a non-code manual task.
     - _Requirements: 8.2, 8.3, 12.12, 12.13, 15.14, 15.15_
-  - [ ] 8.4 Implement repeatable performance-budget instrumentation and gates
+  - [x] 8.4 Implement repeatable performance-budget instrumentation and gates
     - Define the representative mobile/desktop profile and automate compressed overview size, cached interaction latency, LCP p75, lazy detail loading, creator page sizing, and regression thresholds.
     - Fail release eligibility when the 250 KiB, 100 ms, or 2.5 s bounds are not demonstrated under the documented profile.
     - _Requirements: 14.1-14.5_
@@ -263,7 +263,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
   - [ ]* 8.8 Write automated accessibility and visual-regression suites
     - Validate applicable WCAG 2.2 AA rules, semantic states, keyboard paths, live regions, 200% zoom, reduced motion, desktop/mobile reflow, non-color legends, dark views, no-data/selected states, long names, and high-count formatting.
     - _Requirements: 9.4, 9.5, 9.9, 10.12, 13.1-13.11_
-  - [ ]* 8.9 Write performance acceptance tests
+  - [x]* 8.9 Write performance acceptance tests
     - Measure compressed overview payload, cached filter/country updates, mobile LCP p75, lazy shard requests, creator pagination payloads, and immutable/refreshable cache behavior under the representative profile.
     - _Requirements: 14.1-14.5, 14.10, 14.11_
   - [ ]* 8.10 Write adversarial security, privacy, and release-gate tests

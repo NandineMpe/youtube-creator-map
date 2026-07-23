@@ -55,7 +55,7 @@ BOUNDARY_METADATA = {
 def round_coordinates(node: Any, precision: int) -> Any:
     """Recursively round every coordinate in a nested position array."""
     if isinstance(node, list):
-        if node and isinstance(node[0], (int, float)):
+        if node and isinstance(node[0], int | float):
             return [round(float(value), precision) for value in node]
         return [round_coordinates(item, precision) for item in node]
     return node

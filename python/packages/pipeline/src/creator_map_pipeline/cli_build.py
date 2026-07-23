@@ -111,6 +111,7 @@ def _build(args: argparse.Namespace, url: str) -> int:
         inputs = AggregateInputs(
             enrichment_cutoff=cutoff,
             policy_version=args.policy_version,
+            channel_policy_version=args.channel_policy_version,
             active_filter=active,
         )
 
@@ -236,6 +237,7 @@ def _build(args: argparse.Namespace, url: str) -> int:
                 AggregateInputs(
                     enrichment_cutoff=cutoff,
                     policy_version=args.policy_version,
+                    channel_policy_version=args.channel_policy_version,
                     active_filter=candidate.active,
                 ),
                 creator_limit=args.creator_limit,
@@ -329,6 +331,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--actor", required=True)
     parser.add_argument("--release-id", default=None)
     parser.add_argument("--policy-version", default="1.0.0")
+    parser.add_argument(
+        "--channel-policy-version",
+        default=None,
+        help="Policy version for channel observations, when it differs.",
+    )
     parser.add_argument("--page-size", type=int, default=50)
     parser.add_argument("--creator-limit", type=int, default=None)
     parser.add_argument(

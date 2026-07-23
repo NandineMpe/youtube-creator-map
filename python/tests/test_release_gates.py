@@ -13,6 +13,7 @@ from creator_map_pipeline.release.gates import (
     GateOutcome,
     ReleaseCandidate,
     gate_arithmetic,
+    gate_creator_pagination,
     gate_dependency_scan,
     gate_digests,
     gate_disclosure,
@@ -408,6 +409,75 @@ def test_manifest_gate_rejects_a_release_id_mismatch() -> None:
     assert result.outcome is GateOutcome.FAILED
 
 
+# --- Requirement 14.5 / 10.6: creator pagination --------------------------
+
+
+def _shard(country: str, *, rows: int, total: int, pages: int) -> GeneratedArtifact:
+    return GeneratedArtifact(
+        path=f"releases/r1/countries/{country}.json",
+        payload={
+            "country": country,
+            "firstPage": {
+                "rows": [{"publicChannelKey": f"pk_{i:04d}"} for i in range(rows)],
+                "pageSize": 50,
+                "totalRows": total,
+            },
+            "pageIndex": {
+                "representedVideoCountDesc": [
+                    f"releases/r1/countries/{country}/x/page-{i}.json" for i in range(pages)
+                ]
+            },
+        },
+    ).finalize()
+
+
+def test_pagination_passes_when_every_page_is_published() -> None:
+    subject = candidate(extra=[_shard("DE", rows=50, total=120, pages=3)])
+    assert gate_creator_pagination(subject).outcome is GateOutcome.PASSED
+
+
+def test_pagination_fails_when_pages_are_missing() -> None:
+    """The defect this gate exists for: a cursor leading nowhere."""
+    subject = candidate(extra=[_shard("DE", rows=50, total=2747, pages=1)])
+    result = gate_creator_pagination(subject)
+
+    assert result.outcome is GateOutcome.FAILED
+    assert any("expected" in r for r in result.reasons)
+
+
+def test_pagination_fails_when_no_index_is_published() -> None:
+    shard = GeneratedArtifact(
+        path="releases/r1/countries/DE.json",
+        payload={
+            "country": "DE",
+            "firstPage": {"rows": [], "pageSize": 50, "totalRows": 900},
+        },
+    ).finalize()
+    result = gate_creator_pagination(candidate(extra=[shard]))
+
+    assert result.outcome is GateOutcome.FAILED
+    assert any("no page index" in r for r in result.reasons)
+
+
+def test_pagination_fails_when_the_first_page_exceeds_the_page_size() -> None:
+    # Requirement 14.5: rows are partitioned, not shipped whole.
+    subject = candidate(extra=[_shard("DE", rows=500, total=500, pages=1)])
+    result = gate_creator_pagination(subject)
+
+    assert result.outcome is GateOutcome.FAILED
+    assert any("over the" in r for r in result.reasons)
+
+
+def test_pagination_accepts_a_country_that_fits_one_page() -> None:
+    subject = candidate(extra=[_shard("DE", rows=12, total=12, pages=1)])
+    assert gate_creator_pagination(subject).outcome is GateOutcome.PASSED
+
+
+def test_pagination_is_incomplete_without_shards() -> None:
+    """Requirement 8.3: an unrun check is not a pass."""
+    assert gate_creator_pagination(candidate()).outcome is GateOutcome.INCOMPLETE
+
+
 # --- Requirement 15.14/15.15: dependency scanning -------------------------
 
 
@@ -447,9 +517,12 @@ def test_recorded_signoff_passes() -> None:
 
 
 def test_a_complete_candidate_passes_every_gate() -> None:
-    report = run_gates(candidate())
+    # A complete candidate now includes a country shard: without one the
+    # pagination gate is INCOMPLETE, which is correct rather than a
+    # nuisance — a release with no shards has published no detail.
+    report = run_gates(candidate(extra=[_shard("DE", rows=50, total=120, pages=3)]))
     assert report.passed, report.describe()
-    assert len(report.results) == 9
+    assert len(report.results) == 10
 
 
 def test_report_lists_every_blocking_gate() -> None:
@@ -474,6 +547,6 @@ def test_a_raising_gate_is_incomplete_not_passing() -> None:
 
 
 def test_report_describes_itself_readably() -> None:
-    text = run_gates(candidate()).describe()
+    text = run_gates(candidate(extra=[_shard("DE", rows=50, total=120, pages=3)])).describe()
     assert "PASS" in text
     assert "arithmetic" in text

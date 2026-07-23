@@ -58,8 +58,15 @@ API_KEY_VAR = "YOUTUBE_API_KEY"
 DEFAULT_DAILY_QUOTA = 10_000
 
 
-def _default_policy() -> EnrichmentPolicy:
-    """The approved enrichment policy used by these commands."""
+def _default_policy(version: str = "1.0.0") -> EnrichmentPolicy:
+    """The approved enrichment policy used by these commands.
+
+    The version is a parameter because work identity is
+    (entity, kind, policy version): resolving the same channels under a
+    richer policy — one that fetches declared country rather than only a
+    display name — is new work, not a repeat. Reusing the version would
+    make the planner treat it as already done and resolve nothing.
+    """
     dispositions = {
         ErrorClass.RATE_LIMITED: FailureDisposition.RETRYABLE,
         ErrorClass.NETWORK: FailureDisposition.RETRYABLE,
@@ -74,7 +81,7 @@ def _default_policy() -> EnrichmentPolicy:
     return EnrichmentPolicy.model_validate(
         {
             "policy_id": "default-enrichment",
-            "version": "1.0.0",
+            "version": version,
             "approved_at": datetime(2026, 1, 1, tzinfo=UTC),
             "freshness_seconds": 30 * 86_400,
             "video_fields": ("id", "snippet.channelId"),
@@ -116,7 +123,7 @@ def _resolve_api_key() -> str | None:
 def _videos_from_snapshot(args: argparse.Namespace, url: str) -> int:
     """Resolve video-to-channel from a snapshot carrying channel_id."""
     snapshot = Path(args.snapshot)
-    policy = _default_policy()
+    policy = _default_policy(args.policy_version)
 
     mapping = dict(
         iter_parquet_column_pairs(
@@ -178,7 +185,7 @@ def _videos_from_snapshot(args: argparse.Namespace, url: str) -> int:
 def _channels_from_snapshot(args: argparse.Namespace, url: str) -> int:
     """Resolve channel display names from a snapshot (no country)."""
     snapshot = Path(args.snapshot)
-    policy = _default_policy()
+    policy = _default_policy(args.policy_version)
 
     names = dict(
         iter_parquet_column_pairs(
@@ -248,7 +255,7 @@ def _channels_from_api(args: argparse.Namespace, url: str) -> int:
         )
         return 2
 
-    policy = _default_policy()
+    policy = _default_policy(args.policy_version)
 
     with psycopg.connect(url) as connection:
         with connection.cursor() as cur:
@@ -353,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     from_snapshot.add_argument("--video-column", default="video_id")
     from_snapshot.add_argument("--channel-column", default="channel_id")
     from_snapshot.add_argument("--job-id", default="videos-from-snapshot")
+    from_snapshot.add_argument("--policy-version", default="1.0.0")
     from_snapshot.add_argument("--actor", required=True)
     from_snapshot.add_argument("--max-rows", type=int, default=None)
     from_snapshot.add_argument("--max-batches", type=int, default=None)
@@ -367,6 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     names.add_argument("--channel-column", default="channel_id")
     names.add_argument("--name-column", default="channel")
     names.add_argument("--job-id", default="channels-from-snapshot")
+    names.add_argument("--policy-version", default="1.0.0")
     names.add_argument("--actor", required=True)
     names.add_argument("--max-rows", type=int, default=None)
     names.add_argument("--max-batches", type=int, default=None)
@@ -374,6 +383,11 @@ def main(argv: list[str] | None = None) -> int:
 
     api = sub.add_parser("channels-from-api", help="Resolve Declared_Country via the metadata API")
     api.add_argument("--job-id", default="channels-from-api")
+    api.add_argument(
+        "--policy-version",
+        default="1.0.0-country",
+        help="Work identity includes this; a new value re-resolves entities.",
+    )
     api.add_argument("--actor", required=True)
     api.add_argument("--max-batches", type=int, default=None)
     api.set_defaults(handler=_channels_from_api)

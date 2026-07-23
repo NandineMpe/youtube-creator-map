@@ -415,6 +415,75 @@ def gate_dependency_scan(candidate: ReleaseCandidate) -> GateResult:
     return GateResult("dependency-scan", GateOutcome.PASSED)
 
 
+# --- Requirement 14.5: creator rows are partitioned -----------------------
+
+
+def gate_creator_pagination(candidate: ReleaseCandidate) -> GateResult:
+    """Creator rows must be paginated, not shipped whole.
+
+    Requirement 14.5 partitions creator rows according to the page-size
+    policy rather than including every row in the default payload. A shard
+    that advertises more rows than it carries must also publish the pages
+    that hold the rest, or Requirement 10.6's exactly-once traversal
+    cannot complete — the cursor would lead nowhere.
+    """
+    reasons: list[str] = []
+    checked = 0
+
+    for artifact in candidate.artifacts:
+        if "/countries/" not in artifact.path or artifact.path.endswith(
+            tuple(f"page-{n}.json" for n in range(10))
+        ):
+            continue
+
+        payload = artifact.payload
+        first_page = payload.get("firstPage")
+        if not isinstance(first_page, dict):
+            continue
+
+        checked += 1
+        rows = len(first_page.get("rows", []))
+        page_size = int(first_page.get("pageSize", 0) or 0)
+        total = int(first_page.get("totalRows", 0) or 0)
+        country = payload.get("country", artifact.path)
+
+        if page_size and rows > page_size:
+            reasons.append(
+                f"{country}: first page carries {rows} rows, over the {page_size} page size"
+            )
+
+        # Every page the traversal can reach must exist.
+        index = payload.get("pageIndex")
+        if total > rows:
+            if not isinstance(index, dict) or not index:
+                reasons.append(
+                    f"{country}: {total} rows but no page index, so "
+                    f"traversal cannot reach past the first page"
+                )
+            else:
+                for order, paths in index.items():
+                    expected = -(-total // page_size) if page_size else 0
+                    if expected and len(paths) < expected:
+                        reasons.append(
+                            f"{country}/{order}: {len(paths)} pages published "
+                            f"for {total} rows, expected {expected}"
+                        )
+
+    if checked == 0:
+        return GateResult(
+            "creator-pagination",
+            GateOutcome.INCOMPLETE,
+            ("no country shards to check",),
+        )
+
+    return GateResult(
+        "creator-pagination",
+        GateOutcome.FAILED if reasons else GateOutcome.PASSED,
+        tuple(reasons[:20]),
+        detail={"shardsChecked": str(checked)},
+    )
+
+
 # --- Requirement 8.2: curator sign-off ------------------------------------
 
 
@@ -442,6 +511,7 @@ DEFAULT_GATES: tuple[Gate, ...] = (
     gate_neutral_language,
     gate_digests,
     gate_payload_budget,
+    gate_creator_pagination,
     gate_dependency_scan,
     gate_signoff,
 )

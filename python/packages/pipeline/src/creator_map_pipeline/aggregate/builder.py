@@ -50,6 +50,17 @@ class AggregateInputs:
     enrichment_cutoff: datetime
     policy_version: str
     active_filter: Filter
+    #: Channel observations may come from a different policy than video
+    #: ones: resolving video-to-channel and resolving declared country are
+    #: separate enrichment policies with separate work identities, and a
+    #: release can legitimately pin one of each. Defaults to
+    #: `policy_version` so a single-policy release needs no extra
+    #: configuration.
+    channel_policy_version: str | None = None
+
+    @property
+    def channel_policy(self) -> str:
+        return self.channel_policy_version or self.policy_version
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,7 +122,7 @@ selected_channel as (
     select distinct on (channel_id)
         channel_id, status, display_name, declared_country
     from enrichment.channel_observation
-    where policy_version = %(policy_version)s
+    where policy_version = %(channel_policy_version)s
       and observed_at <= %(cutoff)s
     order by channel_id, observed_at desc, response_digest desc
 )
@@ -138,6 +149,7 @@ filtered_occurrence as (
 def _filter_params(inputs: AggregateInputs) -> dict[str, object]:
     return {
         "policy_version": inputs.policy_version,
+        "channel_policy_version": inputs.channel_policy,
         "cutoff": inputs.enrichment_cutoff,
         "datasets": list(inputs.active_filter.datasets),
         "corpus_classes": [c.value for c in inputs.active_filter.corpus_classes],
