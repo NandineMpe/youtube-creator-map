@@ -176,14 +176,14 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Validates: Requirements 8.4-8.8, 8.10-8.12**
 
 - [ ] 6. Build the public overview, verified loader, filters, map, and table
-  - [ ] 6.1 Implement the static Next.js application shell and approved methodology content
+  - [x] 6.1 Implement the static Next.js application shell and approved methodology content
     - Create the dark responsive shell, semantic layout, headline placeholders, global methodology/limitations access, correction path, dataset citations, count definitions, release/cutoff context, and boundary attribution/license conventions.
     - Use approved observational language and distinguish comparison corpora without legal or moral implications.
     - _Requirements: 1.9, 7.9, 9.1, 9.8, 12.1-12.11, 13.1, 13.2_
-  - [ ] 6.2 Implement the verified release/artifact loader and resilient cache state
+  - [x] 6.2 Implement the verified release/artifact loader and resilient cache state
     - Load the active pointer and manifest, validate schemas/digests, prohibit mixed releases, retry missing/corrupt shards, preserve the last verified state, and distinguish loading, empty, delivery, digest, and refresh failures.
     - _Requirements: 8.8, 10.10, 14.6-14.11_
-  - [ ] 6.3 Implement the canonical URL codec and exploration state reducer
+  - [x] 6.3 Implement the canonical URL codec and exploration state reducer
     - Parse/serialize release, ordered filter sets, country/Unknown, metric, page cursor, and sort using deterministic defaults and a versioned fallback policy with corrected-component reporting.
     - Keep failed updates on the preceding valid state.
     - _Requirements: 9.6, 9.10-9.12, 10.8-10.10, 11.1-11.10_

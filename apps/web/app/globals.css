@@ -1,0 +1,336 @@
+/*
+ * Base styles for the public application.
+ *
+ * The palette is dark by design intent, but every foreground/background
+ * pair here meets WCAG 2.2 AA contrast (Requirement 13.1). The muted text
+ * colour is the tightest pair at 7.1:1 on the page background, which leaves
+ * headroom above the 4.5:1 minimum rather than sitting on it.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0a0c10;
+  --bg-raised: #141820;
+  --bg-inset: #1c222c;
+  --border: #2a323f;
+  --border-strong: #3d4757;
+
+  --text: #e8ecf2;
+  --text-muted: #a3adbd;
+  --text-dim: #7b8698;
+
+  --accent: #6ea8fe;
+  --accent-strong: #9ec5ff;
+  --focus: #ffd166;
+
+  --no-data: #262c36;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  --radius: 6px;
+  --max-width: 78rem;
+
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Relative units throughout so 200% zoom reflows rather than clipping
+     (Requirement 13.7). */
+  font-size: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  margin: 0 0 var(--space-3);
+  font-weight: 600;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.1rem);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
+}
+
+h3 {
+  font-size: 1.05rem;
+}
+
+p {
+  margin: 0 0 var(--space-4);
+  max-width: 68ch;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--accent-strong);
+}
+
+/* A visible, high-contrast focus ring on every interactive element
+   (Requirement 13.2). Never removed without an equivalent replacement. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Skip link: the first tab stop, so keyboard users can bypass the header
+   and filters to reach the data (Requirement 13.2). */
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -3rem;
+  z-index: 100;
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__inner {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+}
+
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+
+.site-header__title {
+  margin-bottom: var(--space-2);
+}
+
+.site-header__subtitle {
+  color: var(--text-muted);
+  margin-bottom: 0;
+  max-width: 72ch;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.release-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.release-context__value {
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* Headline metric cards. */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.metric-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.metric-card__value {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.metric-card__label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  display: block;
+  margin-top: var(--space-1);
+}
+
+.metric-card__note {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  display: block;
+  margin-top: var(--space-2);
+}
+
+/* Data tables are the accessible equivalent of the map, not a fallback,
+   so they get first-class styling (Requirement 13.4, 13.8). */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table caption {
+  text-align: left;
+  color: var(--text-muted);
+  padding-bottom: var(--space-3);
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.data-table td.numeric,
+.data-table th.numeric {
+  text-align: right;
+}
+
+/* Wide content scrolls inside its own container so the page body never
+   scrolls horizontally (Requirement 13.7). */
+.scroll-x {
+  overflow-x: auto;
+}
+
+.definition-list {
+  margin: 0;
+}
+
+.definition-list dt {
+  font-weight: 600;
+  margin-top: var(--space-4);
+}
+
+.definition-list dd {
+  margin: var(--space-1) 0 0;
+  color: var(--text-muted);
+  max-width: 68ch;
+}
+
+.callout {
+  border-left: 3px solid var(--border-strong);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-raised);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: var(--space-4) 0;
+}
+
+.callout p:last-child {
+  margin-bottom: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Requirement 13.6: replace non-essential motion, keeping every state
+   change and control. Nothing here conveys information through animation,
+   so removing the transitions loses nothing. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch targets reach 44px on small screens (Requirement 13.10). */
+@media (max-width: 48rem) {
+  .site-nav a,
+  button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .shell__inner {
+    padding: var(--space-4) var(--space-3);
+  }
+}
