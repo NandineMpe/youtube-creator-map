@@ -78,6 +78,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--web", default=None, help="Static web export to publish alongside")
     parser.add_argument("--bucket", default="creator-map")
     parser.add_argument(
+        "--include-html",
+        action="store_true",
+        help=(
+            "Also upload the .html entry points. Off by default: Supabase "
+            "Storage forces text/plain on HTML, so a browser downloads the "
+            "page instead of rendering it. The HTML app is hosted "
+            "separately (Vercel/GitHub Pages); only the data and hashed "
+            "assets belong on the storage CDN."
+        ),
+    )
+    parser.add_argument(
         "--stage-only",
         action="store_true",
         help="Upload artifacts without moving the active-release pointer.",
@@ -102,10 +113,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.web:
-        # The web bundle rides along as extra artifacts. It is not part
-        # of the release manifest — the app is code, the release is data
-        # — but both have to be on the CDN for the site to work.
-        web = plan_web_bundle(Path(args.web))
+        # The web bundle's hashed JS/CSS rides along as extra artifacts:
+        # the app fetches them from the storage CDN. HTML is excluded by
+        # default because Supabase serves it as text/plain, which makes a
+        # browser download the page rather than render it — the HTML
+        # entry points are hosted separately.
+        web = plan_web_bundle(Path(args.web), include_html=args.include_html)
         plan = DeliveryPlan(
             release_id=plan.release_id,
             artifacts=(*plan.artifacts, *web),

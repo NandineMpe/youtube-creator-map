@@ -240,6 +240,25 @@ def test_web_bundle_prefix_is_applied(tmp_path: Path) -> None:
     assert plan_web_bundle(out, prefix="app/")[0].key == "app/index.html"
 
 
+def test_html_can_be_excluded_for_stores_that_mangle_it(tmp_path: Path) -> None:
+    """Supabase Storage serves uploaded HTML as text/plain, so a browser
+    downloads the page instead of rendering it. On such a store the HTML
+    is hosted elsewhere and only the data and hashed assets are uploaded;
+    including the HTML anyway leaves dead files served with the wrong
+    type."""
+    out = tmp_path / "out"
+    (out / "_next" / "static").mkdir(parents=True)
+    (out / "_next" / "static" / "a-abc.js").write_text("x", encoding="utf-8")
+    (out / "index.html").write_text("<html></html>", encoding="utf-8")
+    (out / "methodology" / "index.html").parent.mkdir()
+    (out / "methodology" / "index.html").write_text("<html></html>", encoding="utf-8")
+
+    keys = {o.key for o in plan_web_bundle(out, include_html=False)}
+
+    assert "_next/static/a-abc.js" in keys
+    assert not any(k.endswith(".html") for k in keys)
+
+
 # --- Reporting -------------------------------------------------------------
 
 
