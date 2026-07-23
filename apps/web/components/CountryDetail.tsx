@@ -15,6 +15,7 @@ import {
   loadCreatorPage,
 } from "../lib/loader";
 import { countryLabel, formatCount, formatDate } from "../lib/format";
+import { useAnnouncer } from "./Announcer";
 import { ErrorPanel, LoadingPanel } from "./StatePanels";
 
 /**
@@ -50,6 +51,7 @@ export function CountryDetailPanel({
   const [error, setError] = useState<ArtifactLoadError | null>(null);
   const [loading, setLoading] = useState(true);
   const heading = useRef<HTMLHeadingElement | null>(null);
+  const { announce, alert } = useAnnouncer();
 
   const country = summary.country;
 
@@ -78,6 +80,11 @@ export function CountryDetailPanel({
       setDetail(loaded);
       setPage(loaded.firstPage);
       setPageIndex(0);
+      announce(
+        `${countryLabel(country)}: ${formatCount(loaded.creatorCount)} creators, ` +
+          `${formatCount(loaded.representedVideoCount)} represented videos, ` +
+          `${formatCount(loaded.firstPage.totalRows)} published creators listed.`,
+      );
     } catch (caught) {
       setError(
         caught instanceof ArtifactLoadError
@@ -89,7 +96,13 @@ export function CountryDetailPanel({
     } finally {
       setLoading(false);
     }
-  }, [manifest, country, summary.creatorCount, summary.representedVideoCount]);
+  }, [
+    manifest,
+    country,
+    summary.creatorCount,
+    summary.representedVideoCount,
+    announce,
+  ]);
 
   useEffect(() => {
     void load();
@@ -116,6 +129,10 @@ export function CountryDetailPanel({
         setPage(loaded);
         setPageIndex(index);
         setError(null);
+        announce(
+          `Page ${index + 1} of ${creatorPageCount(detail, sortOrder)}, ` +
+            `showing ${formatCount(loaded.rows.length)} creators.`,
+        );
       } catch (caught) {
         // Requirement 10.10: a failed page keeps the country and release
         // selected and shows no partial rows.
@@ -124,11 +141,14 @@ export function CountryDetailPanel({
             ? caught
             : new ArtifactLoadError("network", country, "page failed"),
         );
+        alert(
+          "That page of creators could not be loaded. The rows shown are from the last verified page.",
+        );
       } finally {
         setLoading(false);
       }
     },
-    [manifest, detail, sortOrder, country],
+    [manifest, detail, sortOrder, country, announce, alert],
   );
 
   if (loading && !detail) {
@@ -343,16 +363,30 @@ function CreatorList({
                 type="button"
                 onClick={() => onPage(pageIndex - 1)}
                 disabled={pageIndex === 0 || loading}
+                // The visible label is "Previous", which out of context
+                // says nothing about what it moves through. Requirement
+                // 13.9 wants the pagination state exposed, and a screen
+                // reader reaching this button by shortcut hears only its
+                // accessible name.
+                aria-label={`Previous page, page ${pageIndex} of ${totalPages}`}
               >
                 Previous
               </button>
-              <span aria-current="page">
+              {/*
+                Not aria-current: that marks the current item within a set
+                of navigable items, and this is static text, not a link to
+                the page it names. Announcing "current page" on something
+                unfocusable misleads rather than orients. The count is
+                already announced by the live region above.
+              */}
+              <span>
                 Page {pageIndex + 1} of {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => onPage(pageIndex + 1)}
                 disabled={pageIndex >= totalPages - 1 || loading}
+                aria-label={`Next page, page ${pageIndex + 2} of ${totalPages}`}
               >
                 Next
               </button>

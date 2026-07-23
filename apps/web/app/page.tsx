@@ -387,9 +387,18 @@ export default function OverviewPage() {
               manifest={manifest}
               summary={selected}
               sortOrder={view.sort}
-              onSortChange={(sort) =>
-                update({ sort: sort as typeof view.sort })
-              }
+              onSortChange={(sort) => {
+                update({ sort: sort as typeof view.sort });
+                // Requirement 13.9 lists sort state among what must be
+                // exposed. A sort change rebuilds every row, so silence
+                // here leaves a screen-reader user unaware the list they
+                // were reading has been reordered beneath them.
+                announce(
+                  sort === "displayNameAsc"
+                    ? "Sorted by channel name, A to Z. Showing the first page."
+                    : "Sorted by represented videos, most first. Showing the first page.",
+                );
+              }}
               onClose={() => selectCountry(null)}
             />
           );

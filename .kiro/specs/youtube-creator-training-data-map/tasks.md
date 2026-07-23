@@ -224,10 +224,10 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Exclude creator details from indexing/sitemaps, emit only optional coarse policy-approved telemetry, apply restrictive CSP/HSTS/SRI as applicable, and prevent anonymous mutation or secret-bearing browser configuration.
     - Keep methodology and correction/opt-out access available from details, empty states, and errors.
     - _Requirements: 7.3, 7.9-7.11, 12.9, 15.3, 15.13, 15.19_
-  - [ ] 7.6 Checkpoint — validate detail, accessibility, and privacy alignment before final integration
+  - [x] 7.6 Checkpoint — validate detail, accessibility, and privacy alignment before final integration
     - Reread `design.md` and `requirements.md`; evaluate tasks 7.1-7.5 and prior UI for detail consistency, pagination, all interaction paths, WCAG 2.2 AA, mobile/reduced-motion/zoom behavior, SEO/telemetry minimization, and browser security; run relevant validation and fix drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 7.7 Write country-detail and interaction integration tests
+  - [x]* 7.7 Write country-detail and interaction integration tests
     - Cover map/table/pointer/keyboard equivalence, summary-detail parity, URL synchronization, lazy loading, stable pages, disclosure-only rows, empty detail, corrupt shard recovery, and desktop/mobile functional equivalence.
     - _Requirements: 10.1-10.12, 13.4, 13.5, 13.10, 13.11, 14.4, 14.6-14.8_
   - [ ]* 7.8 Write property test for country-detail consistency
