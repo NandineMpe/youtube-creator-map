@@ -37,10 +37,12 @@
   --radius: 6px;
   --max-width: 78rem;
 
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --font:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
 }
 
 *,
@@ -332,5 +334,243 @@ a:hover {
 
   .shell__inner {
     padding: var(--space-4) var(--space-3);
+  }
+}
+
+/* --- Legend ------------------------------------------------------------ */
+
+.legend {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.legend__title {
+  margin: 0 0 var(--space-1);
+  font-size: 0.95rem;
+}
+
+.legend__unit {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  margin: 0 0 var(--space-3);
+}
+
+.legend__scale {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.legend__swatch {
+  width: 1.5rem;
+  height: 0.9rem;
+  border-radius: 2px;
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+}
+
+/* The no-data swatch is dashed as well as differently coloured, so the
+   distinction survives greyscale (Requirement 9.5). */
+.legend__swatch--no-data {
+  border-style: dashed;
+}
+
+.legend__method {
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin: var(--space-3) 0 0;
+}
+
+/* --- Table interaction -------------------------------------------------- */
+
+.data-table th button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.data-table th button:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.data-table tbody th button {
+  color: var(--accent);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.data-table tr.is-selected {
+  background: var(--bg-inset);
+}
+
+.data-table tr.is-selected > th,
+.data-table tr.is-selected > td {
+  border-bottom-color: var(--border-strong);
+}
+
+.bin-swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 2px;
+  border: 1px solid var(--border-strong);
+  margin-right: var(--space-2);
+  vertical-align: -1px;
+}
+
+.badge {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.digest {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* --- Filters ------------------------------------------------------------ */
+
+.filter-panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.filter-panel__group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-4);
+}
+
+.filter-panel__group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-panel__legend {
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: var(--space-2);
+}
+
+.filter-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+}
+
+.filter-option input {
+  margin-top: 0.25rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.filter-option__label {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-option__note {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin: var(--space-4) 0;
+}
+
+.control-row label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+select {
+  background: var(--bg-inset);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  min-height: 2.5rem;
+}
+
+/* --- States -------------------------------------------------------------- */
+
+.state-panel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.state-panel--error {
+  border-left-color: #e5806b;
+}
+
+.state-panel--empty {
+  border-left-color: var(--border-strong);
+}
+
+.state-panel--loading {
+  border-left-color: var(--accent);
+}
+
+.state-panel h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.state-panel p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Map / table layout -------------------------------------------------- */
+
+.explore-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(14rem, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .explore-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

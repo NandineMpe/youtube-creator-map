@@ -187,7 +187,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Parse/serialize release, ordered filter sets, country/Unknown, metric, page cursor, and sort using deterministic defaults and a versioned fallback policy with corrected-component reporting.
     - Keep failed updates on the preceding valid state.
     - _Requirements: 9.6, 9.10-9.12, 10.8-10.10, 11.1-11.10_
-  - [ ] 6.4 Implement headline metrics, filter controls, coverage, and state presentations
+  - [x] 6.4 Implement headline metrics, filter controls, coverage, and state presentations
     - Render active filter/release/cutoff, exact count units, full resolution partitions, comparison labels, Unknown Country card, zero-input Empty State, loading states, and recoverable errors from verified artifacts.
     - Update all overview surfaces and URL atomically on filter changes.
     - _Requirements: 6.7-6.11, 9.1, 9.6-9.8, 9.12, 12.3, 12.4, 12.7-12.9_
