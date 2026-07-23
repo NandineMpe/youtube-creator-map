@@ -293,6 +293,7 @@ def approved_creator_rows(
             channel_id=creator.channel_id,
             display_name=creator.display_name,
             represented_video_count=creator.represented_video_count,
+            country=creator.country,
         )
         decision = engine.decide(candidate)
         if not decision.permitted:

@@ -398,6 +398,7 @@ def candidate_from_artifacts(
     artifacts: list[GeneratedArtifact],
     *,
     signoff_actor: str | None = None,
+    signoff_detail: str | None = None,
     vulnerability_scan: dict[str, object] | None = None,
 ) -> ReleaseCandidate:
     """Assemble a candidate from a generated artifact set."""
@@ -409,5 +410,6 @@ def candidate_from_artifacts(
         artifacts=tuple(artifacts),
         manifest=manifest,
         signoff_actor=signoff_actor,
+        signoff_detail=signoff_detail,
         vulnerability_scan=vulnerability_scan,
     )

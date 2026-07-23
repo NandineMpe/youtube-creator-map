@@ -85,6 +85,9 @@ class CreatorCandidate:
     channel_id: str
     display_name: str | None
     represented_video_count: int
+    #: The bucket this creator falls in. The threshold can differ by
+    #: country, so the decision cannot be made without knowing which one.
+    country: str = ""
 
 
 class DisclosureEngine:
@@ -129,7 +132,8 @@ class DisclosureEngine:
         if full_scope:
             return DisclosureDecision(permitted=False, outcome=DisclosureOutcome.SUPPRESSED)
 
-        if candidate.represented_video_count < self._policy.min_represented_video_count:
+        threshold = self._policy.threshold_for(candidate.country)
+        if candidate.represented_video_count < threshold:
             return DisclosureDecision(permitted=False, outcome=DisclosureOutcome.BELOW_THRESHOLD)
 
         # A creator with no display name cannot satisfy a policy that

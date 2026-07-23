@@ -1,0 +1,157 @@
+name: Release
+
+# Builds and validates a release without activating it, then offers
+# activation as a separate, gated step.
+#
+# The split is the point. Requirement 8.4 stages the complete artifact set
+# before the pointer moves, and Requirement 8.3 keeps the previous release
+# serving whenever a gate fails or cannot complete. A single job that
+# built and published in one pass would have no moment at which those
+# properties could be checked.
+#
+# Requirement refs: 7.1-7.11, 8.2-8.12, 14.1-14.11, 15.1-15.22
+
+on:
+  workflow_dispatch:
+    inputs:
+      activate:
+        description: "Activate the release after every gate passes"
+        type: boolean
+        default: false
+      actor:
+        description: "Curator responsible for this run"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  # Requirement 15.2 wants workloads authenticated through a
+  # least-privilege identity rather than a long-lived key. This requests
+  # a short-lived OIDC token the cloud provider exchanges for scoped
+  # credentials; no storage secret is stored in the repository.
+  id-token: write
+
+concurrency:
+  # Two activations racing could interleave a pointer change with another
+  # run's staging, and Requirement 8.7 requires one complete release at
+  # every observable instant.
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and validate (no activation)
+    runs-on: windows-latest
+    outputs:
+      release-id: ${{ steps.plan.outputs.release-id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install from lock
+        run: |
+          python -m pip install --upgrade "pip==26.1.2"
+          python -m pip install -r pylock.toml
+          python -m pip install --no-deps -e python/packages/schemas -e python/packages/restricted-infra -e python/packages/pipeline
+          npm ci
+
+      - name: Build artifacts and web bundle
+        shell: pwsh
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PUBLIC_KEY_SECRET: ${{ secrets.PUBLIC_KEY_SECRET }}
+        run: ./scripts/build_release.ps1 -Actor "${{ inputs.actor }}"
+
+      # Requirement 15.3: the last chance to catch a credential before
+      # the bytes reach a CDN.
+      - name: Scan artifacts and bundle for credentials
+        run: python scripts/scan_bundle.py dist apps/web/out
+
+      - name: Release acceptance
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m creator_map_pipeline.cli_release accept --dir dist --actor "${{ inputs.actor }}" --scan-completed --json dist/acceptance-report.json
+
+      - name: Compute the delivery plan
+        id: plan
+        shell: pwsh
+        run: |
+          python -m creator_map_pipeline.cli_deliver --dir dist --web apps/web/out --json dist/delivery-plan.json
+          $pointer = Get-Content dist/active-release.json | ConvertFrom-Json
+          "release-id=$($pointer.releaseId)" >> $env:GITHUB_OUTPUT
+
+      # Only artifacts that passed every gate are packaged. A failing
+      # acceptance step above stops the workflow before this runs, so a
+      # rejected candidate never becomes an uploadable bundle.
+      - name: Package the verified release
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ steps.plan.outputs.release-id }}
+          path: |
+            dist/
+            apps/web/out/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Publish the validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.run_id }}
+          path: |
+            dist/acceptance-report.json
+            dist/delivery-plan.json
+          if-no-files-found: warn
+
+  activate:
+    name: Activate
+    needs: build
+    if: inputs.activate
+    runs-on: windows-latest
+    # Requirement 15.16: activation changes protected state, so it
+    # requires an approval configured on the environment rather than
+    # proceeding because a box was ticked on the workflow form.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install from lock
+        run: |
+          python -m pip install --upgrade "pip==26.1.2"
+          python -m pip install -r pylock.toml
+          python -m pip install --no-deps -e python/packages/schemas -e python/packages/restricted-infra -e python/packages/pipeline
+
+      # Activation runs against the packaged bytes, not a rebuild. A
+      # rebuild could differ from what the gates approved, and the
+      # sign-off is scoped to a manifest digest that would no longer
+      # match.
+      - name: Download the verified release
+        uses: actions/download-artifact@v4
+        with:
+          name: release-${{ needs.build.outputs.release-id }}
+
+      - name: Activate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python -m creator_map_pipeline.cli_release activate --dir dist --actor "${{ inputs.actor }}" --scan-completed
+
+      # Requirement 8.10-8.12: rollback needs the prior release's
+      # manifest and artifacts to still exist. Recording the pointer
+      # history here keeps the inputs to a rollback available even if the
+      # build that produced them has aged out.
+      - name: Record the pointer state for rollback
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python -m creator_map_pipeline.cli_release status --dir dist

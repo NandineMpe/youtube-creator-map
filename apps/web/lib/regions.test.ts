@@ -143,22 +143,36 @@ describe.skipIf(!hasRelease)("named regions", () => {
     expect(geo.features.some((f) => f.properties.iso === code)).toBe(true);
   });
 
-  it("publishes only creators meeting the disclosure threshold", async () => {
-    // The gap between counted and listed creators is the policy working,
-    // not data loss. Asserting it keeps a future change to the threshold
-    // from silently publishing everyone.
+  it.each(REGIONS)("%s publishes every counted creator", async (code) => {
+    // These two buckets carry a threshold of 1 by explicit operator
+    // decision, so counted and published must agree exactly. If they
+    // diverge, either the override stopped applying or creators are
+    // being lost somewhere between aggregation and publication — and the
+    // two look identical from the outside without this check.
     const release = await loadActiveRelease({ fetchImpl: fileFetch() });
+    const detail = await loadCountryDetail(release.manifest, code, {
+      fetchImpl: fileFetch(),
+    });
 
-    for (const [code] of REGIONS) {
-      const detail = await loadCountryDetail(release.manifest, code, {
-        fetchImpl: fileFetch(),
-      });
-      expect(detail.firstPage.totalRows).toBeLessThanOrEqual(
-        detail.creatorCount,
-      );
-      for (const row of detail.firstPage.rows) {
-        expect(row.representedVideoCount).toBeGreaterThanOrEqual(5);
-      }
+    expect(detail.firstPage.totalRows).toBe(detail.creatorCount);
+  });
+
+  it("leaves other countries on the stricter default threshold", async () => {
+    // The override is scoped. A change that widened publication
+    // everywhere would pass every other test in this file.
+    const release = await loadActiveRelease({ fetchImpl: fileFetch() });
+    const other = release.overview.countries.find(
+      (c) => c.country === "US" && c.creatorCount > 100,
+    );
+    if (!other) return;
+
+    const detail = await loadCountryDetail(release.manifest, other.country, {
+      fetchImpl: fileFetch(),
+    });
+
+    expect(detail.firstPage.totalRows).toBeLessThan(detail.creatorCount);
+    for (const row of detail.firstPage.rows) {
+      expect(row.representedVideoCount).toBeGreaterThanOrEqual(5);
     }
   });
 });

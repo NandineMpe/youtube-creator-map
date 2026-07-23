@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 from creator_map_pipeline.aggregate.artifacts import GeneratedArtifact
 from creator_map_pipeline.release.gates import (
+    DEFAULT_GATES,
     GateOutcome,
     ReleaseCandidate,
     gate_arithmetic,
@@ -522,7 +523,12 @@ def test_a_complete_candidate_passes_every_gate() -> None:
     # nuisance — a release with no shards has published no detail.
     report = run_gates(candidate(extra=[_shard("DE", rows=50, total=120, pages=3)]))
     assert report.passed, report.describe()
-    assert len(report.results) == 10
+    # Every gate reports exactly once. Compared against the gate list
+    # rather than a literal count, so adding a gate does not fail this
+    # test for the wrong reason — what matters is that none went missing
+    # or ran twice, not the number.
+    assert len(report.results) == len(DEFAULT_GATES)
+    assert len({r.name for r in report.results}) == len(DEFAULT_GATES)
 
 
 def test_report_lists_every_blocking_gate() -> None:

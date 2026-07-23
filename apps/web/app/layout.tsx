@@ -6,6 +6,30 @@ import { AnnouncerProvider } from "../components/Announcer";
 
 import "./globals.css";
 
+/**
+ * The origin serving published artifacts, when it differs from the
+ * page's own.
+ *
+ * Derived from the same build-time variable the loader reads, so the
+ * policy and the fetches cannot disagree — a CSP naming one origin while
+ * the loader fetches another fails at runtime in the browser, with an
+ * error that points at the fetch rather than the policy.
+ *
+ * Reduced to an origin because CSP matches on origin, not path.
+ */
+const ARTIFACT_ORIGIN = (() => {
+  const configured = process.env.NEXT_PUBLIC_ARTIFACT_BASE_URL;
+  if (!configured) return "";
+  try {
+    return new URL(configured).origin;
+  } catch {
+    // A malformed value would otherwise produce a CSP that silently
+    // blocks every artifact fetch. Empty means same-origin, which fails
+    // loudly at the first request instead.
+    return "";
+  }
+})();
+
 export const metadata: Metadata = {
   title: "YouTube Creator Training Data Map",
   description:
@@ -45,7 +69,13 @@ export default function RootLayout({
             "img-src 'self' data: blob:",
             // MapLibre compiles its rendering workers from blobs.
             "worker-src 'self' blob:",
-            "connect-src 'self'",
+            // Artifacts may be served from a CDN origin rather than the
+            // page's own. Adding exactly that origin — not a wildcard —
+            // keeps the policy as tight as the deployment allows: a
+            // `https:` here would permit exfiltration to anywhere.
+            ARTIFACT_ORIGIN
+              ? `connect-src 'self' ${ARTIFACT_ORIGIN}`
+              : "connect-src 'self'",
             "font-src 'self'",
             "object-src 'none'",
             "base-uri 'none'",

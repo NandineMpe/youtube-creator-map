@@ -57,18 +57,31 @@ from creator_map_pipeline.repositories import (
     record_audit,
 )
 
-#: Default disclosure policy for development builds.
+#: Disclosure policy governing what creator detail is published.
 #:
-#: The design requires small-group thresholds to be chosen through privacy
-#: review before launch, and the system fails closed until they are. This
-#: value is a development placeholder, not that review's outcome.
+#: The default threshold of 5 remains a development placeholder: the
+#: design requires small-group rules to come from privacy review before
+#: launch, and this value has not been through one.
+#:
+#: South Africa and Ireland are published in full at the operator's
+#: explicit request, recorded here rather than applied as a conditional
+#: in build code so that the decision travels with the policy version and
+#: appears in the release record.
+#:
+#: What this means in practice, stated plainly because the number hides
+#: it: at a threshold of 1 every resolved channel in those two buckets is
+#: named — 238 South African and 121 Irish channels. Each name and
+#: declared country is public YouTube metadata individually; assembled
+#: into a browsable per-country list it becomes a new artifact, which is
+#: the discoverability risk the publication boundary exists to bound.
 _DEV_POLICY = DisclosurePolicy.model_validate(
     {
         "policy_id": "development-disclosure",
-        "version": "0.1.0-dev",
+        "version": "0.2.0-dev",
         "approved_at": datetime(2026, 1, 1, tzinfo=UTC),
         "min_represented_video_count": 5,
         "allowed_fields": ("display_name", "represented_video_count"),
+        "country_thresholds": (("IE", 1), ("ZA", 1)),
     }
 )
 

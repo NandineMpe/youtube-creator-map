@@ -1,0 +1,117 @@
+name: Security
+
+# Requirement 15.3 makes a credential in any build artifact, source file,
+# browser bundle, log, manifest, or public artifact a gate failure. These
+# checks run on every change rather than only at release, because a secret
+# that reaches the default branch is already exposed regardless of what a
+# later release gate decides.
+#
+# Requirement refs: 15.1-15.3, 15.13, 15.14, 15.15
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Vulnerability data changes without the code changing, so a clean
+    # scan last week says nothing about today.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: a secret committed and then removed is still in
+          # the objects, and scanning only the tip would miss it.
+          fetch-depth: 0
+
+      - name: Scan history for credentials
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependencies:
+    name: Dependency and license review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install from lock
+        run: |
+          python -m pip install --upgrade "pip==26.1.2"
+          python -m pip install -r pylock.toml
+          npm ci
+
+      # Requirement 15.14 asks for pinned versions and lockfile
+      # integrity, not merely that an install succeeded. `npm ci` fails
+      # on a lockfile that disagrees with package.json, which is the
+      # check; this makes the intent explicit rather than incidental.
+      - name: Verify the lockfile is authoritative
+        run: npm ci --dry-run
+
+      - name: Python vulnerability scan
+        run: |
+          python -m pip install pip-audit
+          python -m pip_audit --local --skip-editable
+
+      - name: JavaScript vulnerability scan
+        run: npm audit --audit-level=high
+
+  artifacts:
+    name: Public-artifact privacy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install from lock
+        run: |
+          python -m pip install --upgrade "pip==26.1.2"
+          python -m pip install -r pylock.toml
+          python -m pip install --no-deps -e python/packages/schemas -e python/packages/restricted-infra -e python/packages/pipeline
+          npm ci
+
+      # The disclosure and prohibited-content checks are unit-testable
+      # without a database, and they are the ones that decide what may
+      # cross the publication boundary.
+      - name: Publication-boundary tests
+        run: |
+          python -m pytest python/tests/test_disclosure.py python/tests/test_artifacts.py python/tests/test_scan_bundle.py -q
+
+      # The cross-stack contract, checked against the committed fixture.
+      # Needs no database, so it runs here rather than skipping.
+      - name: Cross-stack artifact contract
+        run: npx vitest run apps/web/lib/fixture-contract.test.ts
+
+      # Accessibility is a requirement (13.1-13.11), not a nicety, and
+      # these need no database either.
+      - name: Accessibility and journey suites
+        run: npx vitest run "apps/web/**/*.a11y.test.tsx" "apps/web/**/*.dom.test.tsx"
+
+      - name: Static web build
+        run: npm run build
+
+      # Requirement 15.3: a credential in the browser bundle is a
+      # publication gate failure. The build output is the last place to
+      # catch one before it ships.
+      - name: Scan the built bundle for credentials
+        run: python scripts/scan_bundle.py apps/web/out

@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: creator-map-restricted-infra
-Version: 0.1.0
-Summary: Restricted infrastructure adapters and ports
-Requires-Python: <3.13,>=3.11
-Requires-Dist: creator-map-schemas==0.1.0
-Requires-Dist: pydantic==2.11.7
-Requires-Dist: psycopg[binary]==3.2.9

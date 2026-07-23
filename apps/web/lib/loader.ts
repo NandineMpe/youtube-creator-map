@@ -87,7 +87,25 @@ export async function digestBytes(bytes: ArrayBuffer): Promise<string> {
   return `sha256:${hex}`;
 }
 
+/**
+ * Where published artifacts live, when they are not served from the same
+ * origin as the page.
+ *
+ * A static export has no server to ask, so the CDN origin has to be
+ * baked in at build time. It is a public URL, not a secret: it appears in
+ * every network request the page makes.
+ *
+ * Empty by default, which means same-origin — the right behaviour for
+ * local development and for a deployment that serves artifacts and app
+ * together. `NEXT_PUBLIC_ARTIFACT_BASE_URL` overrides it when the two are
+ * split, as they are on Supabase Storage where artifacts sit under a
+ * bucket path.
+ */
+export const ARTIFACT_BASE_URL =
+  process.env.NEXT_PUBLIC_ARTIFACT_BASE_URL?.replace(/\/+$/, "") ?? "";
+
 export interface FetchOptions {
+  /** Defaults to `ARTIFACT_BASE_URL`; tests pass "" to stay relative. */
   readonly baseUrl?: string;
   readonly retry?: RetryPolicy;
   readonly signal?: AbortSignal;
@@ -120,7 +138,7 @@ async function fetchBytes(
   const retry = options.retry ?? DEFAULT_RETRY;
   const doFetch = options.fetchImpl ?? fetch;
   const pause = options.sleep ?? delay;
-  const url = joinUrl(options.baseUrl ?? "", path);
+  const url = joinUrl(options.baseUrl ?? ARTIFACT_BASE_URL, path);
 
   let lastError: unknown;
 

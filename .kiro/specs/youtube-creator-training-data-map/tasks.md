@@ -6,7 +6,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
 
 ## Tasks
 
-- [ ] 1. Establish the typed, reproducible, security-aware foundation
+- [x] 1. Establish the typed, reproducible, security-aware foundation
   - [x] 1.1 Scaffold the Python pipeline and TypeScript web workspaces
     - Configure pinned runtime/development dependencies, lockfiles, formatting, linting, type checking, unit-test commands, and CI entry points without adding media-download dependencies.
     - Keep pipeline, restricted infrastructure, shared schemas, and public web packages separated by explicit module boundaries.
@@ -34,7 +34,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Test required-field failures, deterministic serialization, database constraints, rollback behavior, restricted/public schema separation, and secrets/log redaction.
     - _Requirements: 1.1-1.8, 3.9-3.12, 4.1-4.7, 7.5-7.7, 15.1-15.6, 15.20-15.22_
 
-- [ ] 2. Implement governed ingestion and exact extraction accounting
+- [x] 2. Implement governed ingestion and exact extraction accounting
   - [x] 2.1 Implement the immutable dataset registry and approval gate
     - Add idempotent registration, conflicting-revision rejection, completeness/access review, version-key enforcement, preserved prior contracts, and methodology-facing approved metadata export.
     - _Requirements: 1.1-1.5, 1.8, 1.9_
@@ -67,7 +67,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Property 2: Occurrence Conservation** — generate source records and expansion rules and prove accepted plus rejected records equal examined records and emitted counts equal reported expansion totals.
     - **Validates: Requirements 2.12-2.14**
 
-- [ ] 3. Implement cached, resumable, quota-safe enrichment
+- [x] 3. Implement cached, resumable, quota-safe enrichment
   - [x] 3.1 Implement distinct work planning, append-only observation caching, and cutoff selection
     - Plan one video/channel work item per entity and policy, preserve dataset membership separately, reuse eligible cache entries, and select one observation deterministically at a pinned cutoff.
     - _Requirements: 3.1-3.4, 3.9-3.12, 4.1_
@@ -98,7 +98,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Property 10: Resumption Equivalence** — generate interruption, lease-expiry, checkpoint-replay, and retry schedules and prove the committed observation set equals uninterrupted execution for fixed observations and cutoff.
     - **Validates: Requirements 4.4-4.7, 4.17**
 
-- [ ] 4. Build exact aggregates and enforce the publication boundary
+- [x] 4. Build exact aggregates and enforce the publication boundary
   - [x] 4.1 Implement deterministic DuckDB filter and distinct-set aggregation
     - Build exact occurrence, represented-video, creator, country, and per-dataset counts from pinned Parquet/observation inputs with dataset and corpus-class isolation and deterministic ordering.
     - Preserve cross-dataset membership while deduplicating only at declared count boundaries.
@@ -116,7 +116,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
   - [x] 4.5 Generate disclosure-reviewed public aggregate and detail artifacts
     - Serialize schemas from task 1.5, recursively inspect keys/values/metadata/indexes, reject prohibited or restricted content, omit suppressed identities from every public surface, and emit methodology/coverage context.
     - _Requirements: 6.7-6.11, 7.2-7.7, 7.9-7.11, 10.3-10.7, 12.1-12.11_
-  - [ ] 4.6 Checkpoint — validate aggregation and disclosure alignment before release work
+  - [x] 4.6 Checkpoint — validate aggregation and disclosure alignment before release work
     - Reread `design.md` and `requirements.md`; reconcile tasks 4.1-4.5 against exact-set, coverage, detail-page, disclosure, and publication-boundary clauses; run aggregate/schema/privacy validation and correct all drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
   - [x]* 4.7 Write aggregate, pagination, disclosure, and artifact unit tests
@@ -144,7 +144,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Property 13: Disclosure Noninterference** — recursively inspect generated artifacts, indexes, telemetry, logs, errors, and payload fixtures and prove suppressed identities never appear.
     - **Validates: Requirements 7.2-7.7, 7.10, 7.11**
 
-- [ ] 5. Validate, stage, activate, and roll back immutable releases
+- [x] 5. Validate, stage, activate, and roll back immutable releases
   - [x] 5.1 Implement release-candidate assembly and digest manifests
     - Pin snapshots, cutoff, filters, methodology/policy versions, generation time, complete artifact inventory, cryptographic digests, and immutable cache metadata in deterministic manifests.
     - _Requirements: 8.1, 14.10_
@@ -175,7 +175,7 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - **Property 15: Atomic Publication** — generate staging, verification, activation, and rollback failures and prove observers see only the complete previous or complete new verified release.
     - **Validates: Requirements 8.4-8.8, 8.10-8.12**
 
-- [ ] 6. Build the public overview, verified loader, filters, map, and table
+- [x] 6. Build the public overview, verified loader, filters, map, and table
   - [x] 6.1 Implement the static Next.js application shell and approved methodology content
     - Create the dark responsive shell, semantic layout, headline placeholders, global methodology/limitations access, correction path, dataset citations, count definitions, release/cutoff context, and boundary attribution/license conventions.
     - Use approved observational language and distinguish comparison corpora without legal or moral implications.
@@ -201,11 +201,11 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
   - [x]* 6.7 Write web unit and component tests for loading, URL, filters, bins, and parity
     - Cover canonical round trips/fallbacks, reducer rollback, exact legends, number formatting, map/table identity, empty/error distinctions, Unknown Country, comparison labels, digest retries, and mixed-release prevention.
     - _Requirements: 6.7-6.11, 9.1-9.12, 11.1-11.10, 14.6-14.11_
-  - [ ]* 6.8 Write property test for neutral labeling
+  - [x]* 6.8 Write property test for neutral labeling
     - **Property 14: Neutral Labeling** — generate public views and recursively lint rendered/exported copy so membership never becomes a claim about training, legality, infringement, consent, residence, or nationality.
     - **Validates: Requirements 12.1-12.8, 12.12, 12.13**
 
-- [ ] 7. Implement consistent country details, accessibility, responsiveness, and browser privacy
+- [x] 7. Implement consistent country details, accessibility, responsiveness, and browser privacy
   - [x] 7.1 Implement verified country-detail selection and recovery
     - Synchronize click, keyboard, and table actions with heading, map/table selection, URL, aggregate totals, dataset breakdown, coverage, release/cutoff, and lazy detail loading.
     - Preserve valid context and never substitute zero, stale, partial, or Empty State data for a failed detail.
@@ -230,19 +230,19 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
   - [x]* 7.7 Write country-detail and interaction integration tests
     - Cover map/table/pointer/keyboard equivalence, summary-detail parity, URL synchronization, lazy loading, stable pages, disclosure-only rows, empty detail, corrupt shard recovery, and desktop/mobile functional equivalence.
     - _Requirements: 10.1-10.12, 13.4, 13.5, 13.10, 13.11, 14.4, 14.6-14.8_
-  - [ ]* 7.8 Write property test for country-detail consistency
+  - [x]* 7.8 Write property test for country-detail consistency
     - **Property 12: Country-Detail Consistency** — generate releases, filters, and country selections and prove panel creator/video totals equal the corresponding map/table summary totals.
     - **Validates: Requirements 10.1, 10.2**
 
-- [ ] 8. Complete cross-stack integration, operational validation, performance, and release readiness
-  - [ ] 8.1 Implement deterministic synthetic fixtures and a cross-stack contract harness
+- [x] 8. Complete cross-stack integration, operational validation, performance, and release readiness
+  - [x] 8.1 Implement deterministic synthetic fixtures and a cross-stack contract harness
     - Generate permitted source snapshots, API observations, policies, suppressions, release inputs, boundary metadata, and expected reconciliations usable by Python, TypeScript, and browser validation without real restricted data.
     - _Requirements: 2.12-2.16, 3.5-3.12, 5.1-5.13, 6.1-6.6, 7.1-7.7, 8.1_
-  - [ ] 8.2 Wire the full pipeline to the static web build and versioned delivery layout
+  - [x] 8.2 Wire the full pipeline to the static web build and versioned delivery layout
     - Connect ingestion, enrichment, aggregation, disclosure, release validation, immutable artifacts, active pointer, Next.js static export, object-storage paths, and CDN cache headers with no public runtime API.
     - Ensure one command/workflow can build an inactive synthetic release and web bundle without activating it.
     - _Requirements: 8.1-8.8, 14.9-14.11, 15.3, 15.19_
-  - [ ] 8.3 Implement the automated release-acceptance runner
+  - [x] 8.3 Implement the automated release-acceptance runner
     - Orchestrate arithmetic/provenance/privacy/language/schema/digest/accessibility/security/citation/terms checks, emit machine-readable and human-readable reports, and prevent activation on failure or incomplete validation.
     - Include curator sign-off inputs as authenticated versioned records rather than a non-code manual task.
     - _Requirements: 8.2, 8.3, 12.12, 12.13, 15.14, 15.15_
@@ -250,23 +250,23 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Define the representative mobile/desktop profile and automate compressed overview size, cached interaction latency, LCP p75, lazy detail loading, creator page sizing, and regression thresholds.
     - Fail release eligibility when the 250 KiB, 100 ms, or 2.5 s bounds are not demonstrated under the documented profile.
     - _Requirements: 14.1-14.5_
-  - [ ] 8.5 Implement CI/CD security and release-readiness workflows
+  - [x] 8.5 Implement CI/CD security and release-readiness workflows
     - Run pinned lockfile/license/vulnerability, secret, public-artifact privacy, neutral-copy, schema, test, accessibility, performance, and static-build checks using workload identity and managed secrets.
     - Package only verified immutable artifacts, require explicit secured activation, retain rollback inputs, and prevent direct publication from failed branches or anonymous clients.
     - _Requirements: 7.1-7.11, 8.2-8.12, 12.12, 14.1-14.11, 15.1-15.22_
-  - [ ] 8.6 Final checkpoint — validate complete design and requirements alignment
+  - [x] 8.6 Final checkpoint — validate complete design and requirements alignment
     - Reread all of `design.md` and `requirements.md`; trace every acceptance criterion to completed code/tests, execute the full pipeline, web, property, contract, integration, end-to-end, accessibility, visual, performance, security/privacy, and release-validation suite, inspect generated public artifacts, and correct every drift or failure before declaring implementation complete.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 8.7 Write full synthetic pipeline-to-browser end-to-end tests
+  - [x]* 8.7 Write full synthetic pipeline-to-browser end-to-end tests
     - Exercise registration through extraction, interrupted enrichment, aggregate/release build, activation, default overview, filters, comparison toggle, map/table parity, Unknown Country, detail, pagination, methodology, degraded delivery, and rollback.
     - _Requirements: 1.1-1.9, 2.1-2.16, 3.1-3.12, 4.1-4.18, 5.1-5.13, 6.1-6.11, 8.1-8.12, 9.1-9.12, 10.1-10.12, 11.1-11.10, 12.1-12.13, 14.6-14.11_
-  - [ ]* 8.8 Write automated accessibility and visual-regression suites
+  - [x]* 8.8 Write automated accessibility and visual-regression suites
     - Validate applicable WCAG 2.2 AA rules, semantic states, keyboard paths, live regions, 200% zoom, reduced motion, desktop/mobile reflow, non-color legends, dark views, no-data/selected states, long names, and high-count formatting.
     - _Requirements: 9.4, 9.5, 9.9, 10.12, 13.1-13.11_
   - [x]* 8.9 Write performance acceptance tests
     - Measure compressed overview payload, cached filter/country updates, mobile LCP p75, lazy shard requests, creator pagination payloads, and immutable/refreshable cache behavior under the representative profile.
     - _Requirements: 14.1-14.5, 14.10, 14.11_
-  - [ ]* 8.10 Write adversarial security, privacy, and release-gate tests
+  - [x]* 8.10 Write adversarial security, privacy, and release-gate tests
     - Inject secrets, restricted identifiers, malicious archives/paths/formulas, unauthorized admin/access attempts, audit failures, disallowed egress, dependency-scan failure, CSP violations, suppressed creators, corrupt artifacts, and mixed releases; prove fail-closed behavior and previous-release preservation.
     - _Requirements: 7.1-7.8, 8.2-8.12, 15.1-15.22_
 

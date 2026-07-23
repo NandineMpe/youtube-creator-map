@@ -31,19 +31,28 @@
     "ci": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci.ps1"
   },
   "overrides": {
+    "postcss": "8.5.22",
     "next": {
-      "postcss": "8.5.10",
+      "postcss": "8.5.22",
       "sharp": "0.35.0"
-    }
+    },
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/js": "9.29.0",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
     "@types/node": "22.15.32",
     "eslint": "9.29.0",
     "eslint-config-next": "15.5.21",
+    "jsdom": "27.0.0",
     "prettier": "3.5.3",
     "typescript": "5.8.3",
     "typescript-eslint": "8.34.1",
-    "vitest": "3.2.7"
+    "vitest": "3.2.7",
+    "vitest-axe": "0.1.0"
   }
 }

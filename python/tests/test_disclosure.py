@@ -21,6 +21,7 @@ from creator_map_schemas import (
     SuppressionRecord,
     SuppressionScope,
 )
+from pydantic import ValidationError
 
 INSTANT = datetime(2026, 1, 15, 12, 0, tzinfo=UTC)
 SECRET = "restricted-secret-value"
@@ -44,6 +45,7 @@ def candidate(**overrides: object) -> CreatorCandidate:
         "channel_id": RAW_CHANNEL,
         "display_name": "Example Channel",
         "represented_video_count": 10,
+        "country": "US",
     }
     fields.update(overrides)
     return CreatorCandidate(**fields)  # type: ignore[arg-type]
@@ -158,6 +160,71 @@ def test_creator_missing_a_required_field_is_withheld() -> None:
 
     assert not decision.permitted
     assert decision.outcome is DisclosureOutcome.MISSING_REQUIRED_FIELD
+
+
+# --- Per-country thresholds ----------------------------------------------
+
+
+def test_country_threshold_overrides_the_default() -> None:
+    """A decision that differs by region has to live in the policy.
+
+    Putting it in build-script conditionals would hide it from the policy
+    version a release pins, and Requirement 7.1 makes that version the
+    record of what governed publication.
+    """
+    engine = DisclosureEngine(
+        policy(min_represented_video_count=5, country_thresholds=(("IE", 1), ("ZA", 1))),
+        public_key_secret=SECRET,
+    )
+
+    # One video clears the override but not the default.
+    assert engine.decide(candidate(represented_video_count=1, country="ZA")).permitted
+    assert engine.decide(candidate(represented_video_count=1, country="IE")).permitted
+    assert not engine.decide(candidate(represented_video_count=1, country="US")).permitted
+
+
+def test_country_without_an_override_keeps_the_default() -> None:
+    engine = DisclosureEngine(
+        policy(min_represented_video_count=5, country_thresholds=(("ZA", 1),)),
+        public_key_secret=SECRET,
+    )
+    assert not engine.decide(candidate(represented_video_count=4, country="GB")).permitted
+    assert engine.decide(candidate(represented_video_count=5, country="GB")).permitted
+
+
+def test_overrides_do_not_bypass_other_conditions() -> None:
+    """A lowered threshold widens one condition, not all of them."""
+    record = suppression()
+    engine = DisclosureEngine(
+        policy(country_thresholds=(("ZA", 1),)),
+        suppressions=(record,),
+        public_key_secret=SECRET,
+    )
+    decision = engine.decide(candidate(represented_video_count=99, country="ZA"))
+
+    assert not decision.permitted
+    assert decision.outcome is DisclosureOutcome.SUPPRESSED
+
+
+def test_override_still_requires_a_display_name() -> None:
+    engine = DisclosureEngine(policy(country_thresholds=(("ZA", 1),)), public_key_secret=SECRET)
+    decision = engine.decide(candidate(represented_video_count=50, country="ZA", display_name=None))
+    assert not decision.permitted
+
+
+@pytest.mark.parametrize(
+    "thresholds",
+    [
+        (("ZA", 1), ("IE", 1)),  # unsorted
+        (("ZA", 1), ("ZA", 2)),  # duplicate
+        (("zaf", 1),),  # not alpha-2
+        (("za", 1),),  # not uppercase
+        (("ZA", 0),),  # zero would publish channels with no videos
+    ],
+)
+def test_malformed_overrides_are_rejected(thresholds: object) -> None:
+    with pytest.raises(ValidationError):
+        policy(country_thresholds=thresholds)
 
 
 # --- Requirement 7.4: corrections, opt-outs, suppressions ----------------

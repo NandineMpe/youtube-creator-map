@@ -26,6 +26,7 @@ from creator_map_pipeline.aggregate.artifacts import (
     canonical_bytes,
     find_prohibited_content,
 )
+from creator_map_pipeline.release.headers import SECURITY_HEADERS, check_headers
 
 #: Requirement 14.1 budgets the compressed manifest plus country summaries.
 OVERVIEW_BUDGET_BYTES = 250 * 1024
@@ -68,6 +69,10 @@ class ReleaseCandidate:
     manifest: dict[str, Any]
     #: Present only when the curator has recorded sign-off.
     signoff_actor: str | None = None
+    #: Why no sign-off was found, when one was looked for and missed.
+    #: A gate that reports only "absent" when the real cause is a policy
+    #: change since approval sends the curator to the wrong place.
+    signoff_detail: str | None = None
     #: Dependency scan result, absent when the scan did not run.
     vulnerability_scan: dict[str, Any] | None = None
 
@@ -234,6 +239,50 @@ def gate_disclosure(candidate: ReleaseCandidate) -> GateResult:
 
 #: Claims public copy may never make (Requirement 12.5). Matched
 #: word-boundary so ordinary words containing them do not trip the gate.
+#: Negations that turn a prohibited phrase into the disclaimer
+#: Requirement 12.5 actually wants.
+#:
+#: Without this, the gate flags the project's own required copy: "this
+#: does not indicate whether any model was trained on a video" contains
+#: "was trained on" and would block publication of the very sentence that
+#: makes the claim neutral. A property test found it before the copy
+#: moved into an artifact, which is where it would have become a release
+#: that could not ship without deleting its own disclaimer.
+#:
+#: Scope: the sentence containing the phrase. A negation anywhere earlier
+#: in the same sentence is treated as governing it.
+#:
+#: Two failure modes bound this, and both were found by the property test
+#: rather than reasoned out in advance:
+#:
+#:   Too narrow (a fixed character window) misses the real disclaimer
+#:   "does not establish that any model was trained on the video, that
+#:   any use was unlawful" — one "does not" governs a list of clauses,
+#:   and the last one is far from it.
+#:
+#:   Too wide (the whole string) lets a paragraph opening with any "not"
+#:   exempt every claim after it, which turns the negation handling into
+#:   a bypass.
+#:
+#: Sentence scope is not a parser and will not resolve every
+#: construction. The gate is a backstop under human review of public
+#: copy, not a substitute for it — a claim written to evade this is a
+#: review failure, not a regex failure.
+_SENTENCE_BREAK = re.compile(r"[.!?]\s")
+_NEGATION = re.compile(
+    r"\b(?:not|never|no|cannot|neither|nor|nothing)\b",
+    re.I,
+)
+
+
+def _is_negated(text: str, start: int) -> bool:
+    """Whether a negation earlier in the same sentence governs `start`."""
+    sentence_start = 0
+    for match in _SENTENCE_BREAK.finditer(text, 0, start):
+        sentence_start = match.end()
+    return _NEGATION.search(text, sentence_start, start) is not None
+
+
 _PROHIBITED_CLAIMS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bstole|\bstolen\b|\btheft\b", re.I), "theft claim"),
     (re.compile(r"\bpirat(ed|es|ing)\b", re.I), "piracy claim"),
@@ -259,7 +308,20 @@ def gate_neutral_language(candidate: ReleaseCandidate) -> GateResult:
     def inspect(node: object, path: str) -> None:
         if isinstance(node, str):
             for pattern, label in _PROHIBITED_CLAIMS:
-                if pattern.search(node):
+                # finditer, not search: a paragraph may disclaim a class
+                # in one sentence and assert it in the next. Checking
+                # only the first occurrence let exactly that through —
+                # "this does not indicate whether any model was trained
+                # on a video. The model was trained on these videos."
+                # passed, because the first match was negated and the
+                # loop moved on to the next pattern.
+                for match in pattern.finditer(node):
+                    # A negated phrase is a disclaimer, not an assertion.
+                    # Requirement 12.5 requires those disclaimers, so
+                    # flagging them would make the gate reject its own
+                    # required copy.
+                    if _is_negated(node, match.start()):
+                        continue
                     reasons.append(f"{path}: {label}")
                     return
         elif isinstance(node, dict):
@@ -493,12 +555,45 @@ def gate_signoff(candidate: ReleaseCandidate) -> GateResult:
         return GateResult(
             "curator-signoff",
             GateOutcome.INCOMPLETE,
-            ("no curator has signed off on dataset citations and terms review",),
+            (
+                candidate.signoff_detail
+                or "no curator has signed off on dataset citations and terms review",
+            ),
         )
     return GateResult(
         "curator-signoff",
         GateOutcome.PASSED,
         detail={"actor": candidate.signoff_actor},
+    )
+
+
+# --- Requirement 15.13: security response headers -------------------------
+
+
+def gate_security_headers(candidate: ReleaseCandidate) -> GateResult:
+    """The headers the hosting layer must apply are internally valid.
+
+    This checks the policy this release would be served under, not the
+    live response — nothing at build time can observe a CDN. That limit
+    is worth stating: the gate catches a policy weakened in source, not
+    a host misconfigured to drop the headers. Verifying the latter needs
+    a probe against the deployed origin, which belongs to deployment.
+
+    What it does catch is the failure that is otherwise invisible:
+    `frame-ancestors` or HSTS quietly removed, leaving a policy string
+    that still reads as protective.
+    """
+    problems = check_headers(dict(SECURITY_HEADERS))
+    if problems:
+        return GateResult(
+            "security-headers",
+            GateOutcome.FAILED,
+            tuple(f"{p.header}: {p.detail}" for p in problems),
+        )
+    return GateResult(
+        "security-headers",
+        GateOutcome.PASSED,
+        detail={"headers": str(len(SECURITY_HEADERS))},
     )
 
 
@@ -513,6 +608,7 @@ DEFAULT_GATES: tuple[Gate, ...] = (
     gate_payload_budget,
     gate_creator_pagination,
     gate_dependency_scan,
+    gate_security_headers,
     gate_signoff,
 )
 

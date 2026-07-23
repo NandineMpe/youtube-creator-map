@@ -28,12 +28,14 @@ from creator_map_pipeline.database import (
     redacted_target,
     resolve_database_url,
 )
+from creator_map_pipeline.release.acceptance import run_acceptance
 from creator_map_pipeline.release.gates import ReleaseCandidate
 from creator_map_pipeline.release.manager import (
     ActivationError,
     ReleaseManager,
     candidate_from_artifacts,
 )
+from creator_map_pipeline.release.signoff import SignoffRecord, SignoffRepository
 
 
 def _load_candidate(
@@ -41,6 +43,7 @@ def _load_candidate(
     *,
     signoff_actor: str | None,
     scan: dict[str, object] | None,
+    signoff_detail: str | None = None,
 ) -> ReleaseCandidate:
     """Rebuild a candidate from artifacts already written to disk."""
     releases = directory / "releases"
@@ -65,8 +68,103 @@ def _load_candidate(
         release_id,
         artifacts,
         signoff_actor=signoff_actor,
+        signoff_detail=signoff_detail,
         vulnerability_scan=scan,
     )
+
+
+def _manifest_digest(directory: Path) -> tuple[str, str, str]:
+    """Release id, manifest digest, and disclosure policy version on disk.
+
+    Sign-off is scoped to exact bytes, so the digest has to come from the
+    artifacts themselves rather than from anything the caller passes.
+    """
+    candidate = _load_candidate(directory, signoff_actor=None, scan=None)
+    manifest = candidate.artifact("manifest.json")
+    if manifest is None:
+        msg = f"no manifest artifact under {directory}"
+        raise ActivationError(msg)
+    policy_version = str(candidate.manifest.get("disclosurePolicyVersion", "unknown"))
+    return candidate.release_id, manifest.digest, policy_version
+
+
+def _signoff(args: argparse.Namespace, url: str) -> int:
+    """Record a curator's approval of the release currently on disk."""
+    release_id, digest, policy_version = _manifest_digest(Path(args.dir))
+
+    record = SignoffRecord(
+        release_id=release_id,
+        manifest_digest=digest,
+        actor=args.actor,
+        citations_reviewed=args.citations,
+        terms_reviewed=args.terms,
+        policy_version=policy_version,
+        note=args.note,
+    )
+
+    with psycopg.connect(url) as connection:
+        SignoffRepository(connection).record(record)
+        connection.commit()
+
+    print(f"release:  {release_id}")
+    print(f"manifest: {digest}")
+    print(f"policy:   {policy_version}")
+    print(f"actor:    {args.actor}")
+    print(f"citations reviewed: {args.citations}")
+    print(f"terms reviewed:     {args.terms}")
+    if not record.is_complete:
+        # Recorded rather than refused: a partial review is a real fact
+        # worth keeping. It simply will not satisfy the gate.
+        print("\nThis sign-off is incomplete and will not permit activation.")
+    return 0
+
+
+def _resolve_signoff(
+    args: argparse.Namespace, url: str, directory: Path
+) -> tuple[str | None, str | None]:
+    """The curator whose recorded approval covers this exact release.
+
+    Falls back to nothing when no record matches. The `--signoff` flag is
+    gone from validate/activate on purpose: a flag records a string the
+    invoker chose, which is not an approval.
+    """
+    release_id, digest, policy_version = _manifest_digest(directory)
+    with psycopg.connect(url) as connection:
+        repository = SignoffRepository(connection)
+        actor = repository.approving_actor(release_id, digest, policy_version=policy_version)
+        if actor is None:
+            reason = repository.explain(release_id, digest, policy_version=policy_version)
+            print(f"sign-off: {reason}", file=sys.stderr)
+            return None, reason
+    return actor, None
+
+
+def _accept(args: argparse.Namespace, url: str) -> int:
+    """Run every gate and every acceptance suite, then report both ways.
+
+    This does not activate. Task 8.3 wants acceptance to be a thing you
+    can run and read; turning a passing report into an active release
+    stays a separate operator decision.
+    """
+    actor, detail = _resolve_signoff(args, url, Path(args.dir))
+    candidate = _load_candidate(
+        Path(args.dir),
+        signoff_actor=actor,
+        signoff_detail=detail,
+        scan=_scan_argument(args),
+    )
+
+    report = run_acceptance(candidate, cwd=Path(args.cwd) if args.cwd else None)
+
+    print(report.describe())
+
+    if args.json:
+        target = Path(args.json)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(report.to_json(), encoding="utf-8")
+        print(f"\nmachine-readable report written to {target}")
+
+    return 0 if report.passed else 1
 
 
 def _scan_argument(args: argparse.Namespace) -> dict[str, object] | None:
@@ -84,8 +182,12 @@ def _scan_argument(args: argparse.Namespace) -> dict[str, object] | None:
 
 
 def _validate(args: argparse.Namespace, url: str) -> int:
+    actor, detail = _resolve_signoff(args, url, Path(args.dir))
     candidate = _load_candidate(
-        Path(args.dir), signoff_actor=args.signoff, scan=_scan_argument(args)
+        Path(args.dir),
+        signoff_actor=actor,
+        signoff_detail=detail,
+        scan=_scan_argument(args),
     )
 
     with psycopg.connect(url) as connection:
@@ -102,8 +204,12 @@ def _validate(args: argparse.Namespace, url: str) -> int:
 
 
 def _activate(args: argparse.Namespace, url: str) -> int:
+    actor, detail = _resolve_signoff(args, url, Path(args.dir))
     candidate = _load_candidate(
-        Path(args.dir), signoff_actor=args.signoff, scan=_scan_argument(args)
+        Path(args.dir),
+        signoff_actor=actor,
+        signoff_detail=detail,
+        scan=_scan_argument(args),
     )
 
     with psycopg.connect(url) as connection:
@@ -190,11 +296,6 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--actor", required=True)
         p.add_argument("--policy-id", default="development-disclosure")
         p.add_argument(
-            "--signoff",
-            default=None,
-            help="Curator approving dataset citations and terms review.",
-        )
-        p.add_argument(
             "--scan-completed",
             action="store_true",
             help="Record that the dependency scan ran to completion.",
@@ -208,6 +309,28 @@ def main(argv: list[str] | None = None) -> int:
     activate = sub.add_parser("activate", help="Validate, stage, and activate")
     add_common(activate)
     activate.set_defaults(handler=_activate)
+
+    accept = sub.add_parser("accept", help="Run every gate and acceptance suite without activating")
+    add_common(accept)
+    accept.add_argument("--json", default=None, help="Write the machine-readable report here.")
+    accept.add_argument("--cwd", default=None, help="Directory to run acceptance suites in.")
+    accept.set_defaults(handler=_accept)
+
+    signoff = sub.add_parser("signoff", help="Record curator approval of the release on disk")
+    signoff.add_argument("--dir", default="dist")
+    signoff.add_argument("--actor", required=True)
+    signoff.add_argument(
+        "--citations",
+        action="store_true",
+        help="Dataset citations reviewed and correct (Requirement 8.2).",
+    )
+    signoff.add_argument(
+        "--terms",
+        action="store_true",
+        help="Dataset terms reviewed and permit this publication.",
+    )
+    signoff.add_argument("--note", default="")
+    signoff.set_defaults(handler=_signoff)
 
     rollback = sub.add_parser("rollback", help="Restore a prior verified release")
     rollback.add_argument("--dir", default="dist")

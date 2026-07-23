@@ -175,6 +175,13 @@ export function CountryTable({
                   className={isSelected ? "is-selected" : undefined}
                 >
                   <th scope="row">
+                    {/* Requirement 13.5 wants Enter and Space to produce
+                        the same selection as a click. A real <button>
+                        already does: the browser fires click for both.
+                        Adding an onKeyDown handler here would be a
+                        second, divergent path to the same state — and
+                        the usual way that requirement gets broken is
+                        someone attaching it to a <div> instead. */}
                     <button
                       type="button"
                       onClick={() => onSelect(summary.country)}
