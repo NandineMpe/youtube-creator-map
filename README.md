@@ -3,6 +3,19 @@
 Greenfield monorepo for a metadata-only batch pipeline and static public application. The project
 does not download videos, transcripts, thumbnails, or dataset media.
 
+**Live:** https://nandinempe.github.io/youtube-creator-map/
+**Data CDN:** https://ffipewnioaxjfhieqbaw.supabase.co/storage/v1/object/public/creator-map
+
+The deployment is split across two hosts on purpose. The release artifacts and the app's hashed
+JS/CSS live on Supabase Storage, which serves JSON and JavaScript with correct content types. The
+HTML entry point lives on GitHub Pages, because Supabase Storage forces `text/plain` on uploaded
+HTML as an anti-XSS measure and so cannot serve a browsable page. The app is built with the data
+CDN origin baked in (`NEXT_PUBLIC_ARTIFACT_BASE_URL`) and that exact origin added to its
+`connect-src` CSP; the two deployables never talk to a host they were not built for.
+
+Deploy both halves with `scripts/publish.ps1` (Supabase data) and `scripts/deploy_pages.ps1`
+(GitHub Pages app).
+
 ## Workspace boundaries
 
 - `python/packages/schemas`: versioned contracts; imports neither infrastructure nor orchestration.
