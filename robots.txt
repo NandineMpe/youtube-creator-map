@@ -1,0 +1,18 @@
+# Search-engine exclusion for creator detail.
+#
+# Requirement 7.10 keeps creator-detail routes out of generated indexes.
+# Channel names and declared countries are each already public, but
+# combining them into a searchable index is a new disclosure: someone
+# searching a creator's name should not find a page asserting where they
+# are. The overview stays indexable, being aggregate.
+#
+# Country selection lives in a query parameter, and crawlers vary in how
+# they honour parameterised rules, so the per-page noindex directive
+# applied when detail opens is the load-bearing control. This is defence
+# in depth.
+
+User-agent: *
+Allow: /
+Allow: /methodology
+Disallow: /*?*country=
+Disallow: /*?*cursor=
