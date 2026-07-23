@@ -90,7 +90,12 @@ export function ChoroplethMap({
   scale,
   selectedCountry,
   onSelect,
-  boundariesUrl = "/boundaries/countries.json",
+  // The boundaries file is the app's own asset, so it lives under the
+  // deployment base path. On GitHub Pages the app is served from a
+  // project subpath, and a bare "/boundaries/..." would resolve against
+  // the domain root and 404. `basePath` from next.config is inlined here
+  // at build time; empty for a root deployment.
+  boundariesUrl = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/boundaries/countries.json`,
 }: ChoroplethMapProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);

@@ -57,14 +57,21 @@ export default function RootLayout({
           configures that; this is the strongest policy the static build
           can carry by itself.
 
-          `'unsafe-inline'` for styles is required because Next injects
-          critical CSS inline. Scripts get no such exemption.
+          `'unsafe-inline'` is required for both styles and scripts because
+          a Next.js static export hydrates through inline bootstrap
+          `<script>` blocks (the `self.__next_f.push(...)` RSC payload) and
+          injects critical CSS inline. A static export cannot use nonces —
+          those need a server to stamp each response — so blocking inline
+          scripts blocks hydration entirely and the app never boots. The
+          injection surface it reopens is bounded: there is no server, no
+          user-authored HTML on the page, and every other fetch
+          destination is locked to `'self'` plus the one data origin.
         */}
         <meta
           httpEquiv="Content-Security-Policy"
           content={[
             "default-src 'self'",
-            "script-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob:",
             // MapLibre compiles its rendering workers from blobs.

@@ -64,10 +64,15 @@ def content_security_policy(origin: str | None = None) -> str:
     return "; ".join(
         (
             "default-src 'self'",
-            "script-src 'self'",
-            # Next inlines critical CSS. Scripts get no equivalent
-            # exemption: 'unsafe-inline' on script-src would defeat the
-            # policy entirely.
+            # A Next.js static export hydrates through inline bootstrap
+            # scripts and cannot use nonces (those need a server to stamp
+            # each response), so blocking inline scripts blocks hydration
+            # and the app never boots. 'unsafe-eval' is still refused —
+            # that is the dangerous one, and Next's runtime does not need
+            # it. The surface 'unsafe-inline' reopens is bounded: no
+            # server, no user-authored HTML, every fetch destination
+            # locked to 'self' plus the one data origin.
+            "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob:",
             # MapLibre compiles its rendering workers from blob URLs.
@@ -148,14 +153,15 @@ def check_headers(headers: dict[str, str]) -> tuple[HeaderProblem, ...]:
         if directive not in directives:
             problems.append(HeaderProblem("Content-Security-Policy", f"missing {directive}"))
 
-    # 'unsafe-inline' or 'unsafe-eval' on script-src reopens exactly the
-    # injection class the policy exists to close.
+    # 'unsafe-eval' on script-src permits string-to-code execution, the
+    # dangerous class the policy exists to close. 'unsafe-inline' is
+    # tolerated only because a Next.js static export cannot hydrate
+    # without it (no server to issue nonces); 'unsafe-eval' has no such
+    # excuse, so it stays a failure.
     for part in csp.split(";"):
         part = part.strip()
-        if part.startswith("script-src") and ("unsafe-inline" in part or "unsafe-eval" in part):
-            problems.append(
-                HeaderProblem("Content-Security-Policy", "script-src permits unsafe execution")
-            )
+        if part.startswith("script-src") and "unsafe-eval" in part:
+            problems.append(HeaderProblem("Content-Security-Policy", "script-src permits eval"))
 
     hsts = headers.get("Strict-Transport-Security", "")
     if hsts:
