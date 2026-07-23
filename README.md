@@ -3,8 +3,13 @@
 Greenfield monorepo for a metadata-only batch pipeline and static public application. The project
 does not download videos, transcripts, thumbnails, or dataset media.
 
-**Live:** https://nandinempe.github.io/youtube-creator-map/
+**Live:** https://youtube-creator-map.vercel.app/ (Vercel) · https://nandinempe.github.io/youtube-creator-map/ (GitHub Pages)
 **Data CDN:** https://ffipewnioaxjfhieqbaw.supabase.co/storage/v1/object/public/creator-map
+
+Two working deployments of the same app. Vercel serves the site at its origin (no base path) and
+delivers the security headers — including `frame-ancestors` and HSTS — as real response headers via
+`vercel.json`. GitHub Pages serves it from a project subpath with the same policy in a `<meta>` tag.
+Both fetch data from the Supabase CDN.
 
 The deployment is split across two hosts on purpose. The release artifacts and the app's hashed
 JS/CSS live on Supabase Storage, which serves JSON and JavaScript with correct content types. The
