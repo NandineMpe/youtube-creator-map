@@ -14,11 +14,14 @@ import {
   ErrorPanel,
   LoadingPanel,
 } from "../components/StatePanels";
+import type { OverviewArtifact } from "@creator-map/shared-schemas";
+
 import { computeBins } from "../lib/bins";
 import { metricValue } from "../lib/format";
 import {
   ArtifactLoadError,
   loadActiveRelease,
+  loadFilteredOverview,
   type VerifiedRelease,
 } from "../lib/loader";
 import {
@@ -46,6 +49,13 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<ViewState | null>(null);
   const [corrections, setCorrections] = useState<readonly Correction[]>([]);
+  const [filteredOverview, setFilteredOverview] =
+    useState<OverviewArtifact | null>(null);
+  const [filterExact, setFilterExact] = useState(true);
+  const [filterPending, setFilterPending] = useState(false);
+  const [filterError, setFilterError] = useState<ArtifactLoadError | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,6 +98,47 @@ export default function OverviewPage() {
     void load();
   }, [load]);
 
+  // Requirement 9.6: a filter change must move every surface to the same
+  // resulting filter. Dataset overlap makes the counts non-derivable in
+  // the browser (Requirement 5.12), so the matching precomputed aggregate
+  // is fetched instead of recomputed locally.
+  useEffect(() => {
+    if (!release || !view) return;
+
+    const wanted = { datasets: view.datasets, classes: view.corpusClasses };
+    let cancelled = false;
+
+    void (async () => {
+      setFilterPending(true);
+      try {
+        const { overview, exact } = await loadFilteredOverview(
+          release.manifest,
+          wanted.datasets,
+          wanted.classes,
+        );
+        if (cancelled) return;
+        setFilteredOverview(overview);
+        setFilterExact(exact);
+        setFilterError(null);
+      } catch (caught) {
+        if (cancelled) return;
+        // Requirement 9.12: a failed filter update preserves the
+        // preceding valid view rather than showing partial results.
+        setFilterError(
+          caught instanceof ArtifactLoadError
+            ? caught
+            : new ArtifactLoadError("network", "overview", "filter failed"),
+        );
+      } finally {
+        if (!cancelled) setFilterPending(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [release, view?.datasets, view?.corpusClasses]);
+
   /** Apply a state change and mirror it into the URL. */
   const update = useCallback((change: Partial<ViewState>) => {
     setView((current) => {
@@ -100,7 +151,9 @@ export default function OverviewPage() {
     });
   }, []);
 
-  const countries = release?.overview.countries ?? [];
+  // The filtered aggregate once it has loaded; the default until then.
+  const activeOverview = filteredOverview ?? release?.overview ?? null;
+  const countries = activeOverview?.countries ?? [];
   const metric: MetricKey = view?.metric ?? "creators";
 
   const scale = useMemo(
@@ -131,7 +184,8 @@ export default function OverviewPage() {
     );
   }
 
-  const { manifest, overview } = release;
+  const { manifest } = release;
+  const overview = activeOverview ?? release.overview;
 
   return (
     <>
@@ -159,6 +213,40 @@ export default function OverviewPage() {
         selectedDatasets={view.datasets}
         countryCount={countries.length}
       />
+
+      {filterPending && (
+        <p role="status" aria-live="polite" className="active-filter">
+          Loading figures for this filter…
+        </p>
+      )}
+
+      {!filterExact && !filterPending && (
+        // Requirement 5.12: a filtered count cannot be approximated, so a
+        // selection with no published aggregate shows the default's
+        // figures and says so, rather than presenting one filter's
+        // numbers under another's label.
+        <div className="state-panel state-panel--empty" role="status">
+          <h2>Showing the full release instead</h2>
+          <p>
+            This release does not publish separate figures for that exact
+            combination. The numbers below cover all datasets. Dataset totals
+            overlap and cannot be combined after the fact, so an approximate
+            figure is not offered.
+          </p>
+        </div>
+      )}
+
+      {filterError && (
+        // Requirement 9.12: a failed filter update keeps the preceding
+        // valid view rather than showing partial results.
+        <div className="state-panel state-panel--error" role="alert">
+          <h2>That filter could not be loaded</h2>
+          <p>
+            The figures below are the ones that were already verified. They do
+            not reflect the filter you selected.
+          </p>
+        </div>
+      )}
 
       {countries.length === 0 ? (
         // Requirement 9.7 / 6.11: a zero-input filter is an empty state,

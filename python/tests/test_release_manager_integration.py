@@ -178,10 +178,20 @@ def test_unrecorded_release_cannot_activate(manager: ReleaseManager, scope: str)
 
 
 def test_activation_moves_the_pointer(manager: ReleaseManager, scope: str) -> None:
+    # What is being asserted is that activation *moves* the pointer to this
+    # release, not that nothing was active beforehand. The pointer is a
+    # singleton shared by the whole database, so a concurrent curator
+    # command — or a developer activating a real release while the suite
+    # runs — legitimately leaves one there. Asserting `previous is None`
+    # made this test fail on an unrelated action rather than on a defect;
+    # `test_activation_supersedes_the_previous_release` covers the
+    # transition from a known predecessor.
+    before = manager.active_release_id()
+
     _publish(manager, f"{scope}-a")
     previous = manager.activate(f"{scope}-a")
 
-    assert previous is None
+    assert previous == before
     assert manager.active_release_id() == f"{scope}-a"
 
 

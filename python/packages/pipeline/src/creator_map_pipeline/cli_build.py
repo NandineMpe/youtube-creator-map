@@ -37,6 +37,11 @@ from creator_map_pipeline.aggregate.builder import (
     default_filter,
 )
 from creator_map_pipeline.aggregate.disclosure import DisclosureEngine
+from creator_map_pipeline.aggregate.filters import (
+    enumerate_supported,
+    filter_key,
+    overview_path,
+)
 from creator_map_pipeline.database import (
     DatabaseConfigError,
     redacted_target,
@@ -179,6 +184,60 @@ def _build(args: argparse.Namespace, url: str) -> int:
             artifacts.add(country_shard_path(release_id, country), detail)
             shard_count += 1
 
+        # Requirement 9.6 requires a filter change to update every surface
+        # with exact counts. Dataset overlap makes per-dataset totals
+        # non-additive (Requirement 5.12), so the browser cannot derive a
+        # filtered figure from the default one — each supported combination
+        # needs its own precomputed aggregate.
+        _default, supported = enumerate_supported(
+            tuple(active.datasets), tuple(active.corpus_classes)
+        )
+
+        filter_index: list[dict[str, object]] = [
+            {
+                "key": filter_key(active),
+                "label": "All datasets",
+                "path": f"releases/{release_id}/overview.json",
+                "datasets": list(active.datasets),
+                "corpusClasses": [c.value for c in active.corpus_classes],
+                "isDefault": True,
+            }
+        ]
+
+        for candidate in supported:
+            candidate_result = build_aggregates(
+                cur,
+                AggregateInputs(
+                    enrichment_cutoff=cutoff,
+                    policy_version=args.policy_version,
+                    active_filter=candidate.active,
+                ),
+                creator_limit=args.creator_limit,
+            )
+            if candidate_result.coverage is None or candidate_result.partition is None:
+                continue
+
+            path = overview_path(release_id, candidate.active, is_default=False)
+            artifacts.add(
+                path,
+                build_overview(
+                    candidate_result,
+                    release_id=release_id,
+                    active_filter=candidate.active,
+                ),
+            )
+            filter_index.append(
+                {
+                    "key": filter_key(candidate.active),
+                    "label": candidate.label,
+                    "path": path,
+                    "datasets": list(candidate.active.datasets),
+                    "corpusClasses": [c.value for c in candidate.active.corpus_classes],
+                    "isDefault": False,
+                }
+            )
+            print(f"  filter {candidate.label}: {candidate_result.creator_count:,} creators")
+
         manifest = build_manifest(
             release_id=release_id,
             generated_at=generated_at,
@@ -189,6 +248,7 @@ def _build(args: argparse.Namespace, url: str) -> int:
             methodology_version="1.0.0",
             disclosure_policy_version=_DEV_POLICY.version,
             boundary_metadata=_BOUNDARY_METADATA,
+            filters=filter_index,
         )
         manifest_artifact = artifacts.add(f"releases/{release_id}/manifest.json", manifest)
 

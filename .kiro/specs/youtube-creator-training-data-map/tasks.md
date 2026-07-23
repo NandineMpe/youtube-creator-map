@@ -195,10 +195,10 @@ Implement the approved greenfield design as a Python/Dagster/PostgreSQL/DuckDB b
     - Derive map and table from the same summaries; implement exact quantile/log bins, no-data styling, pattern/text equivalents, hover/focus parity, metric switching, Unknown outside geography, and preserved selection across views.
     - Include versioned Natural Earth-derived boundaries and metadata without location inference.
     - _Requirements: 6.8, 9.2-9.5, 9.7, 9.9-9.11, 12.10, 12.11, 13.4, 13.8_
-  - [ ] 6.6 Checkpoint — validate public overview alignment before detail work
+  - [x] 6.6 Checkpoint — validate public overview alignment before detail work
     - Reread `design.md` and `requirements.md`; compare tasks 6.1-6.5 and prior artifacts with loader, URL, overview, filter, coverage, map/table, neutral-copy, and error-state clauses; run web lint/type/unit/build/schema checks and correct drift before proceeding.
     - Ensure all tests pass, ask the user if questions arise.
-  - [ ]* 6.7 Write web unit and component tests for loading, URL, filters, bins, and parity
+  - [x]* 6.7 Write web unit and component tests for loading, URL, filters, bins, and parity
     - Cover canonical round trips/fallbacks, reducer rollback, exact legends, number formatting, map/table identity, empty/error distinctions, Unknown Country, comparison labels, digest retries, and mixed-release prevention.
     - _Requirements: 6.7-6.11, 9.1-9.12, 11.1-11.10, 14.6-14.11_
   - [ ]* 6.8 Write property test for neutral labeling

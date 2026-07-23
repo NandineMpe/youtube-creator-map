@@ -35,99 +35,113 @@ export function FilterPanel({
   onCorpusClassesChange,
   onMetricChange,
 }: FilterPanelProps) {
-  const datasets = manifest.datasets;
-  const availableClasses = [
-    ...new Set(datasets.map((d) => d.corpusClass)),
-  ].sort();
+  // Only combinations the release actually published can be offered.
+  // Requirement 5.12 forbids approximating a filtered count, so a control
+  // that produced no artifact would either lie or fall back silently.
+  const published = manifest.filters;
+  const byDataset = new Map(
+    manifest.datasets.map((d) => [d.datasetId, d] as const),
+  );
 
-  const toggleDataset = (datasetId: string, checked: boolean) => {
-    const next = checked
-      ? [...selectedDatasets, datasetId]
-      : selectedDatasets.filter((id) => id !== datasetId);
-    onDatasetsChange([...new Set(next)].sort());
-  };
+  const selectedKey =
+    selectedDatasets.length === 0 && selectedCorpusClasses.length === 0
+      ? (published.find((e) => e.isDefault)?.key ?? "")
+      : `${[...selectedCorpusClasses].sort().join("+")}~${[...selectedDatasets].sort().join("+")}`;
 
-  const toggleClass = (corpusClass: string, checked: boolean) => {
-    const next = checked
-      ? [...selectedCorpusClasses, corpusClass]
-      : selectedCorpusClasses.filter((c) => c !== corpusClass);
-    onCorpusClassesChange([...new Set(next)].sort());
-  };
-
-  // An empty selection means "the release default", which is the whole
-  // set. Rendering that as every box unchecked would misreport what is
-  // being shown.
-  const datasetChecked = (id: string) =>
-    selectedDatasets.length === 0 || selectedDatasets.includes(id);
-  const classChecked = (value: string) =>
-    selectedCorpusClasses.length === 0 || selectedCorpusClasses.includes(value);
+  if (published.length <= 1) {
+    // A single-filter release: offering a choice would imply alternatives
+    // that do not exist.
+    return (
+      <div className="filter-panel">
+        <p className="filter-option__note">
+          This release publishes one filter, covering{" "}
+          {manifest.datasets.length === 1
+            ? "its single dataset"
+            : `all ${manifest.datasets.length} datasets`}
+          .
+        </p>
+        <MetricSelect metric={metric} onMetricChange={onMetricChange} />
+      </div>
+    );
+  }
 
   return (
     <div className="filter-panel">
       <fieldset className="filter-panel__group">
-        <legend className="filter-panel__legend">Datasets</legend>
-        {datasets.map((dataset) => (
-          <label className="filter-option" key={dataset.datasetId}>
-            <input
-              type="checkbox"
-              checked={datasetChecked(dataset.datasetId)}
-              onChange={(event) =>
-                toggleDataset(dataset.datasetId, event.target.checked)
-              }
-            />
-            <span className="filter-option__label">
-              <span>{dataset.displayName}</span>
-              <span className="filter-option__note">
-                {dataset.version} · counts{" "}
-                {dataset.occurrenceUnit.toLowerCase()}
-                {dataset.corpusClass === "Comparison" && " · comparison corpus"}
-              </span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+        <legend className="filter-panel__legend">Filter</legend>
+        {published.map((entry) => {
+          const dataset =
+            entry.datasets.length === 1
+              ? byDataset.get(entry.datasets[0])
+              : undefined;
 
-      {availableClasses.length > 1 && (
-        <fieldset className="filter-panel__group">
-          <legend className="filter-panel__legend">Corpus class</legend>
-          {availableClasses.map((corpusClass) => (
-            <label className="filter-option" key={corpusClass}>
+          return (
+            <label className="filter-option" key={entry.key}>
               <input
-                type="checkbox"
-                checked={classChecked(corpusClass)}
-                onChange={(event) =>
-                  toggleClass(corpusClass, event.target.checked)
-                }
+                type="radio"
+                name="published-filter"
+                checked={entry.key === selectedKey}
+                onChange={() => {
+                  if (entry.isDefault) {
+                    // The default is expressed as an empty selection, so
+                    // its URL stays clean (Requirement 11.2).
+                    onDatasetsChange([]);
+                    onCorpusClassesChange([]);
+                  } else {
+                    onDatasetsChange([...entry.datasets]);
+                    onCorpusClassesChange([...entry.corpusClasses]);
+                  }
+                }}
               />
               <span className="filter-option__label">
-                <span>{corpusClass}</span>
+                <span>{dataset ? dataset.displayName : entry.label}</span>
                 <span className="filter-option__note">
-                  {corpusClass === "Comparison"
-                    ? // Requirement 12.6: the label reflects documented
-                      // provenance and says nothing about other corpora.
-                      "Labelled from its own documented provenance and licence terms"
-                    : "Corpora under examination in this project"}
+                  {dataset
+                    ? `${dataset.version} · counts ${dataset.occurrenceUnit.toLowerCase()}${
+                        dataset.corpusClass === "Comparison"
+                          ? " · comparison corpus"
+                          : ""
+                      }`
+                    : entry.corpusClasses.length === 1 &&
+                        entry.corpusClasses[0] === "Comparison"
+                      ? // Requirement 12.6: the label reflects this
+                        // corpus's own documented provenance and says
+                        // nothing about any other.
+                        "Labelled from its own documented provenance and licence terms"
+                      : `${entry.datasets.length} dataset${entry.datasets.length === 1 ? "" : "s"}`}
                 </span>
               </span>
             </label>
-          ))}
-        </fieldset>
-      )}
+          );
+        })}
+      </fieldset>
 
-      <div className="control-row">
-        <label htmlFor="metric-select">Colour the map by</label>
-        <select
-          id="metric-select"
-          value={metric}
-          onChange={(event) => onMetricChange(event.target.value as MetricKey)}
-        >
-          {METRIC_DEFINITIONS.map((definition) => (
-            <option key={definition.key} value={definition.key}>
-              {definition.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <MetricSelect metric={metric} onMetricChange={onMetricChange} />
+    </div>
+  );
+}
+
+function MetricSelect({
+  metric,
+  onMetricChange,
+}: {
+  readonly metric: MetricKey;
+  readonly onMetricChange: (metric: MetricKey) => void;
+}) {
+  return (
+    <div className="control-row">
+      <label htmlFor="metric-select">Colour the map by</label>
+      <select
+        id="metric-select"
+        value={metric}
+        onChange={(event) => onMetricChange(event.target.value as MetricKey)}
+      >
+        {METRIC_DEFINITIONS.map((definition) => (
+          <option key={definition.key} value={definition.key}>
+            {definition.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

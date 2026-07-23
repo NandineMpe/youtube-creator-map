@@ -103,6 +103,7 @@ const manifestFixture = {
   artifactDigests: { "releases/r1/overview.json": DIGEST },
   methodologyVersion: "1.0.0",
   disclosurePolicyVersion: "0.1.0-dev",
+  filters: [],
   boundaryMetadata: {
     datasetName: "Natural Earth Admin 0 - Countries",
     version: "5.1.1",

@@ -55,6 +55,7 @@ function validManifest() {
     artifactDigests: { "overview.json": DIGEST },
     methodologyVersion: "1.0.0",
     disclosurePolicyVersion: "1.0.0",
+    filters: [],
     boundaryMetadata: {
       datasetName: "Natural Earth Admin 0",
       version: "5.1.1",

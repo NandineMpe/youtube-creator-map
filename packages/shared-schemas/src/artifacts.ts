@@ -271,6 +271,28 @@ export const boundaryMetadata = z
   })
   .strict();
 
+/**
+ * One supported filter combination and where its aggregates live.
+ *
+ * Requirement 9.6 requires a filter change to update every surface with
+ * exact counts, and Requirement 5.12 forbids additive approximations.
+ * Dataset overlap means the browser cannot derive a filtered total from
+ * the default one, so each supported combination is published separately
+ * and indexed here.
+ */
+export const filterIndexEntry = z
+  .object({
+    key: z.string().min(1),
+    label: z.string().min(1),
+    path: z.string().min(1),
+    datasets: z.array(z.string().min(1)).min(1),
+    corpusClasses: z.array(corpusClass).min(1),
+    isDefault: z.boolean(),
+  })
+  .strict();
+
+export type FilterIndexEntry = z.infer<typeof filterIndexEntry>;
+
 /** The public release manifest (Requirement 8.1). */
 export const releaseManifest = z
   .object({
@@ -284,6 +306,10 @@ export const releaseManifest = z
     methodologyVersion: z.string().min(1),
     disclosurePolicyVersion: z.string().min(1),
     boundaryMetadata,
+    // Required, and may be empty. The generator always emits it, and
+    // making it optional would push an undefined check into every
+    // consumer for a case the producer never creates.
+    filters: z.array(filterIndexEntry),
   })
   .strict()
   .superRefine((value, ctx) => {

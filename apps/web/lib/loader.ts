@@ -297,6 +297,95 @@ export async function loadActiveRelease(
 }
 
 /**
+ * Choose the published filter matching a selection.
+ *
+ * Requirement 5.12 forbids approximating a filtered count, so a selection
+ * with no published artifact cannot be served by combining others. The
+ * client falls back to the default filter and reports that it did, rather
+ * than showing a number it derived itself.
+ */
+export function resolveFilterEntry(
+  manifest: ReleaseManifest,
+  datasets: readonly string[],
+  corpusClasses: readonly string[],
+): { entry: ReleaseManifest["filters"][number] | null; exact: boolean } {
+  const entries = manifest.filters;
+  if (entries.length === 0) return { entry: null, exact: false };
+
+  const fallback = entries.find((e) => e.isDefault) ?? entries[0];
+
+  // An empty selection means "the release default".
+  if (datasets.length === 0 && corpusClasses.length === 0) {
+    return { entry: fallback, exact: true };
+  }
+
+  const wantedDatasets = [...datasets].sort().join("+");
+  const wantedClasses = [...corpusClasses].sort().join("+");
+
+  const match = entries.find((candidate) => {
+    const haveDatasets = [...candidate.datasets].sort().join("+");
+    const haveClasses = [...candidate.corpusClasses].sort().join("+");
+    const datasetsAgree =
+      datasets.length === 0 || haveDatasets === wantedDatasets;
+    const classesAgree =
+      corpusClasses.length === 0 || haveClasses === wantedClasses;
+    return datasetsAgree && classesAgree;
+  });
+
+  return match
+    ? { entry: match, exact: true }
+    : { entry: fallback, exact: false };
+}
+
+/**
+ * Load the overview for one filter selection.
+ *
+ * Returns the artifact plus whether it exactly matches the request, so the
+ * caller can tell the visitor when a selection fell back rather than
+ * silently showing different figures than the controls imply.
+ */
+export async function loadFilteredOverview(
+  manifest: ReleaseManifest,
+  datasets: readonly string[],
+  corpusClasses: readonly string[],
+  options: FetchOptions = {},
+): Promise<{ overview: OverviewArtifact; exact: boolean }> {
+  const { entry, exact } = resolveFilterEntry(
+    manifest,
+    datasets,
+    corpusClasses,
+  );
+
+  const path = entry?.path ?? `releases/${manifest.releaseId}/overview.json`;
+  const expected = manifest.artifactDigests[path];
+
+  if (!expected) {
+    throw new ArtifactLoadError(
+      "not-found",
+      path,
+      "the manifest lists no aggregate for this filter",
+    );
+  }
+
+  const overview = await loadVerified(
+    path,
+    expected,
+    overviewArtifact,
+    options,
+  );
+
+  if (overview.releaseId !== manifest.releaseId) {
+    throw new ArtifactLoadError(
+      "mixed-release",
+      path,
+      "the filtered overview belongs to a different release",
+    );
+  }
+
+  return { overview, exact };
+}
+
+/**
  * Load one country's detail shard.
  *
  * Requirement 14.4 defers this until a country is actually requested, so

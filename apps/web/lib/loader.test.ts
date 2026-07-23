@@ -137,6 +137,7 @@ function releaseFiles(overrides: Record<string, string> = {}) {
     artifactDigests: { [overviewPath]: digestOf(overview) },
     methodologyVersion: "1.0.0",
     disclosurePolicyVersion: "1.0.0",
+    filters: [],
     boundaryMetadata: {
       datasetName: "Natural Earth",
       version: "5.1.1",

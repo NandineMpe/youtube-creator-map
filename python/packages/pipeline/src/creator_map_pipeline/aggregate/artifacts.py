@@ -385,6 +385,7 @@ def build_manifest(
     methodology_version: str,
     disclosure_policy_version: str,
     boundary_metadata: dict[str, str],
+    filters: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build the public release manifest (Requirement 8.1)."""
     return {
@@ -398,6 +399,10 @@ def build_manifest(
         "methodologyVersion": methodology_version,
         "disclosurePolicyVersion": disclosure_policy_version,
         "boundaryMetadata": boundary_metadata,
+        # The supported filter combinations and where their aggregates
+        # live. Requirement 9.6 needs the client to reach an exact
+        # per-filter artifact rather than approximate one locally.
+        "filters": filters or [],
     }
 
 
