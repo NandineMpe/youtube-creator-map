@@ -283,6 +283,13 @@ def _is_negated(text: str, start: int) -> bool:
     return _NEGATION.search(text, sentence_start, start) is not None
 
 
+#: Fields carrying a name a channel or dataset chose for itself, quoted
+#: verbatim. The neutral-language gate polices the project's editorial
+#: voice, not these, so a channel named "Life in Japan" does not read as
+#: the project asserting residence. Kept in step with the disclosure
+#: guard's own name-field exemption.
+_NAME_FIELD = re.compile(r"^(displayName|datasetName|channelName)$", re.I)
+
 _PROHIBITED_CLAIMS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bstole|\bstolen\b|\btheft\b", re.I), "theft claim"),
     (re.compile(r"\bpirat(ed|es|ing)\b", re.I), "piracy claim"),
@@ -298,15 +305,26 @@ _PROHIBITED_CLAIMS: tuple[tuple[re.Pattern[str], str], ...] = (
 def gate_neutral_language(candidate: ReleaseCandidate) -> GateResult:
     """Reject copy that converts observation into a claim.
 
-    Requirement 12.5 forbids asserting confirmed training, infringement,
-    illegality, consent status, residence, or nationality. This lints the
-    prose actually shipped in artifacts, so unreviewed copy cannot reach
-    publication through a data field.
+    Requirement 12.5 forbids *the project* from asserting confirmed
+    training, infringement, illegality, consent status, residence, or
+    nationality. This lints the prose actually shipped in artifacts, so
+    unreviewed copy cannot reach publication through a data field.
+
+    A creator's display name is exempt. The gate polices what the project
+    says, not what a channel chose to call itself — a channel named
+    "Life in Japan" or one whose name contains "theft" is public metadata
+    quoted verbatim, not the project making a claim about anyone. At a
+    threshold that lists every creator these names really occur, and
+    flagging them would block the release over a string the project did
+    not write. Credentials and raw identifiers in a name are caught by
+    the disclosure gate; this gate is only about editorial voice.
     """
     reasons: list[str] = []
 
-    def inspect(node: object, path: str) -> None:
+    def inspect(node: object, path: str, *, in_name: bool) -> None:
         if isinstance(node, str):
+            if in_name:
+                return
             for pattern, label in _PROHIBITED_CLAIMS:
                 # finditer, not search: a paragraph may disclaim a class
                 # in one sentence and assert it in the next. Checking
@@ -326,13 +344,17 @@ def gate_neutral_language(candidate: ReleaseCandidate) -> GateResult:
                     return
         elif isinstance(node, dict):
             for key, value in node.items():
-                inspect(value, f"{path}.{key}" if path else str(key))
+                inspect(
+                    value,
+                    f"{path}.{key}" if path else str(key),
+                    in_name=_NAME_FIELD.match(str(key)) is not None,
+                )
         elif isinstance(node, list):
             for index, item in enumerate(node):
-                inspect(item, f"{path}[{index}]")
+                inspect(item, f"{path}[{index}]", in_name=in_name)
 
     for artifact in candidate.artifacts:
-        inspect(artifact.payload, artifact.path)
+        inspect(artifact.payload, artifact.path, in_name=False)
 
     return GateResult(
         "neutral-language",

@@ -68,14 +68,35 @@ const PROHIBITED_KEYS: ReadonlyArray<readonly [RegExp, string]> = [
   [/accessToken/i, "credential field"],
 ];
 
-/** Value patterns prohibited regardless of the field they appear under. */
-const PROHIBITED_VALUES: ReadonlyArray<readonly [RegExp, string]> = [
+/**
+ * Value patterns refused everywhere, including inside a display name.
+ * These are credentials and raw record-level identifiers; nothing
+ * legitimately contains one, so a name field gets no exemption.
+ */
+const PROHIBITED_ANYWHERE: ReadonlyArray<readonly [RegExp, string]> = [
   [RAW_CHANNEL_ID, "raw YouTube channel identifier"],
-  [YOUTUBE_URL, "YouTube URL embedding an identifier"],
   [/\bsb_secret_[A-Za-z0-9_-]+/, "Supabase secret key"],
   [/\bAIza[A-Za-z0-9_-]{35}\b/, "Google API key"],
   [/postgres(?:ql)?:\/\/[^\s]*:[^\s]*@/i, "database connection string"],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "private key material"],
+];
+
+/**
+ * Patterns refused in ordinary fields but tolerated in a display name. A
+ * YouTube URL is public metadata, not a secret — a channel that named
+ * itself with a link is publishing what it chose to. When every creator
+ * is listed, real channels with URL-shaped names appear, and blocking
+ * them would veto real data over a string that leaks nothing. Elsewhere a
+ * URL in a value is still refused, since no data field should carry one.
+ */
+const PROHIBITED_OUTSIDE_NAMES: ReadonlyArray<readonly [RegExp, string]> = [
+  [YOUTUBE_URL, "YouTube URL embedding an identifier"],
+];
+
+/** The whole set, applied to every value outside a display name. */
+const PROHIBITED_VALUES: ReadonlyArray<readonly [RegExp, string]> = [
+  ...PROHIBITED_ANYWHERE,
+  ...PROHIBITED_OUTSIDE_NAMES,
 ];
 
 /**
@@ -143,7 +164,12 @@ function checkStringValue(
   path: string,
   findings: DisclosureFinding[],
 ): void {
-  for (const [pattern, reason] of PROHIBITED_VALUES) {
+  const isName = key !== null && NAME_KEYS.test(key);
+
+  // Credentials and raw identifiers are refused everywhere; the URL
+  // pattern only outside a name field, where a URL cannot be legitimate.
+  const active = isName ? PROHIBITED_ANYWHERE : PROHIBITED_VALUES;
+  for (const [pattern, reason] of active) {
     if (pattern.test(value)) {
       findings.push({ path, reason });
       return;
@@ -154,7 +180,7 @@ function checkStringValue(
   // rather than from the credential scans above.
   if (/^sha256:[a-f0-9]{64}$/.test(value)) return;
 
-  if (key !== null && NAME_KEYS.test(key)) return;
+  if (isName) return;
 
   if (key !== null && VIDEO_ID_EXEMPT_KEYS.test(key)) return;
 

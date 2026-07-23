@@ -144,11 +144,11 @@ describe.skipIf(!hasRelease)("named regions", () => {
   });
 
   it.each(REGIONS)("%s publishes every counted creator", async (code) => {
-    // These two buckets carry a threshold of 1 by explicit operator
-    // decision, so counted and published must agree exactly. If they
-    // diverge, either the override stopped applying or creators are
-    // being lost somewhere between aggregation and publication — and the
-    // two look identical from the outside without this check.
+    // The policy publishes every resolved creator (threshold 1), so
+    // counted and published must agree exactly. If they diverge,
+    // creators are being lost somewhere between aggregation and
+    // publication — and the two look identical from the outside without
+    // this check.
     const release = await loadActiveRelease({ fetchImpl: fileFetch() });
     const detail = await loadCountryDetail(release.manifest, code, {
       fetchImpl: fileFetch(),
@@ -157,22 +157,22 @@ describe.skipIf(!hasRelease)("named regions", () => {
     expect(detail.firstPage.totalRows).toBe(detail.creatorCount);
   });
 
-  it("leaves other countries on the stricter default threshold", async () => {
-    // The override is scoped. A change that widened publication
-    // everywhere would pass every other test in this file.
+  it("publishes every counted creator in every country", async () => {
+    // The earlier policy listed only creators with five or more videos,
+    // which made the per-country lists far shorter than the counts. The
+    // map now publishes them all; this checks a large bucket other than
+    // the sampled regions, so a regression to a stricter default is
+    // caught here.
     const release = await loadActiveRelease({ fetchImpl: fileFetch() });
-    const other = release.overview.countries.find(
+    const large = release.overview.countries.find(
       (c) => c.country === "US" && c.creatorCount > 100,
     );
-    if (!other) return;
+    if (!large) return;
 
-    const detail = await loadCountryDetail(release.manifest, other.country, {
+    const detail = await loadCountryDetail(release.manifest, large.country, {
       fetchImpl: fileFetch(),
     });
 
-    expect(detail.firstPage.totalRows).toBeLessThan(detail.creatorCount);
-    for (const row of detail.firstPage.rows) {
-      expect(row.representedVideoCount).toBeGreaterThanOrEqual(5);
-    }
+    expect(detail.firstPage.totalRows).toBe(large.creatorCount);
   });
 });

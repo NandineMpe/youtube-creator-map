@@ -146,15 +146,27 @@ describe("real channel names are not mistaken for identifiers", () => {
     },
   );
 
-  it("still catches a real leak in a name field", () => {
-    // The exemption covers only the guess-from-shape heuristic.
+  it("still catches a credential or raw id in a name field", () => {
+    // The name exemption covers the shape heuristic and public URLs, not
+    // secrets or raw identifiers.
     expect(
       findProhibitedContent({ displayName: "UC_x5XG1OV2P6uZZ5FSM9Ttw" }).length,
     ).toBeGreaterThan(0);
     expect(
-      findProhibitedContent({
-        displayName: "see youtube.com/watch?v=dQw4w9WgXcQ",
-      }).length,
+      findProhibitedContent({ displayName: "AIza" + "F".repeat(35) }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("allows a URL in a name but refuses it elsewhere", () => {
+    // A channel named with a URL is publishing public metadata. The same
+    // URL in an ordinary value has no legitimate reason to be there.
+    // When every creator is listed, real URL-shaped names occur.
+    expect(
+      findProhibitedContent({ displayName: "youtube.com/@creator" }),
+    ).toEqual([]);
+    expect(
+      findProhibitedContent({ note: "see youtube.com/watch?v=dQw4w9WgXcQ" })
+        .length,
     ).toBeGreaterThan(0);
   });
 });

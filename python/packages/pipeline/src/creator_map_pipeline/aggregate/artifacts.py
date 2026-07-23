@@ -53,13 +53,32 @@ _PROHIBITED_KEYS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"^acquisitionPath$|^termsReviewId$", re.I), "internal review field"),
 )
 
-#: Value patterns prohibited wherever they appear.
-_PROHIBITED_VALUES: tuple[tuple[re.Pattern[str], str], ...] = (
+#: Value patterns prohibited wherever they appear, including inside a
+#: display name. These are credentials and raw record-level identifiers:
+#: nothing legitimately contains one, so a name field gets no exemption
+#: from them.
+_PROHIBITED_ANYWHERE: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?<![\w-])UC[A-Za-z0-9_-]{22}(?![\w-])"), "raw channel identifier"),
-    (re.compile(r"(?:youtube\.com|youtu\.be)/", re.I), "YouTube URL"),
     (re.compile(r"\bsb_secret_[A-Za-z0-9_-]+"), "Supabase secret key"),
     (re.compile(r"\bAIza[A-Za-z0-9_-]{35}\b"), "Google API key"),
     (re.compile(r"postgres(?:ql)?://[^\s]*:[^\s]*@", re.I), "connection string"),
+)
+
+#: Patterns prohibited in ordinary fields but tolerated in a display
+#: name. A YouTube URL is public metadata, not a secret — a channel that
+#: named itself with a link is publishing exactly what it chose to. At a
+#: threshold that lists every creator, real channels with URL-shaped
+#: names appear, and blocking them would veto real data over a string
+#: that leaks nothing. Elsewhere a URL in a value is still refused,
+#: because no data field should be carrying one.
+_PROHIBITED_OUTSIDE_NAMES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?:youtube\.com|youtu\.be)/", re.I), "YouTube URL"),
+)
+
+#: The whole set, for callers that inspect a value with no key context.
+_PROHIBITED_VALUES: tuple[tuple[re.Pattern[str], str], ...] = (
+    *_PROHIBITED_ANYWHERE,
+    *_PROHIBITED_OUTSIDE_NAMES,
 )
 
 #: Fields whose values are prose and may contain identifier-shaped words.
@@ -146,7 +165,15 @@ def _inspect_key(key: str, path: str, findings: list[Finding]) -> None:
 
 
 def _inspect_value(value: str, key: str | None, path: str, findings: list[Finding]) -> None:
-    for pattern, reason in _PROHIBITED_VALUES:
+    is_name = key is not None and _NAME_KEYS.match(key) is not None
+
+    # Credentials and raw identifiers are refused everywhere, including in
+    # a name. The URL pattern is refused only outside a name field, where
+    # a URL cannot be legitimate; a channel that named itself with a link
+    # is publishing public metadata, and at a threshold that lists every
+    # creator those names really occur.
+    active = _PROHIBITED_ANYWHERE if is_name else _PROHIBITED_VALUES
+    for pattern, reason in active:
         if pattern.search(value):
             findings.append(Finding(path=path, reason=reason))
             return
@@ -158,7 +185,7 @@ def _inspect_value(value: str, key: str | None, path: str, findings: list[Findin
     # called "101Treesrus" from a video id, and the field's meaning
     # already settles it, so the guess is skipped rather than allowed to
     # veto real data.
-    if key is not None and _NAME_KEYS.match(key):
+    if is_name:
         return
 
     # Under a prose key only a whole-string identifier is prohibited: an

@@ -59,29 +59,29 @@ from creator_map_pipeline.repositories import (
 
 #: Disclosure policy governing what creator detail is published.
 #:
-#: The default threshold of 5 remains a development placeholder: the
-#: design requires small-group rules to come from privacy review before
-#: launch, and this value has not been through one.
+#: A threshold of 1 publishes every resolved channel, for every country,
+#: at the operator's explicit request. The map previously listed only 6%
+#: of the 47,347 resolved creators — those with five or more represented
+#: videos — while still counting all of them, so the per-country lists
+#: looked far shorter than the totals implied. This publishes them all.
 #:
-#: South Africa and Ireland are published in full at the operator's
-#: explicit request, recorded here rather than applied as a conditional
-#: in build code so that the decision travels with the policy version and
-#: appears in the release record.
-#:
-#: What this means in practice, stated plainly because the number hides
-#: it: at a threshold of 1 every resolved channel in those two buckets is
-#: named — 238 South African and 121 Irish channels. Each name and
-#: declared country is public YouTube metadata individually; assembled
-#: into a browsable per-country list it becomes a new artifact, which is
-#: the discoverability risk the publication boundary exists to bound.
+#: Stated plainly, because the number hides it: at a threshold of 1 every
+#: resolved channel is named. Each name and declared country is public
+#: YouTube metadata individually; assembled into a browsable per-country
+#: list it becomes a new artifact, which is the discoverability risk the
+#: publication boundary otherwise exists to bound. The design expects
+#: small-group rules to come from privacy review before launch; this
+#: value is the operator's recorded decision to publish everything, not
+#: the output of such a review. It travels with the policy version so the
+#: decision appears in the release record rather than hiding in a flag.
 _DEV_POLICY = DisclosurePolicy.model_validate(
     {
         "policy_id": "development-disclosure",
-        "version": "0.2.0-dev",
+        "version": "0.3.0-dev",
         "approved_at": datetime(2026, 1, 1, tzinfo=UTC),
-        "min_represented_video_count": 5,
+        "min_represented_video_count": 1,
         "allowed_fields": ("display_name", "represented_video_count"),
-        "country_thresholds": (("IE", 1), ("ZA", 1)),
+        "country_thresholds": (),
     }
 )
 

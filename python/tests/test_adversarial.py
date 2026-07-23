@@ -250,6 +250,51 @@ def test_a_channel_named_like_a_video_id_still_publishes() -> None:
     assert artifact.digest
 
 
+def test_a_channel_named_with_a_youtube_url_still_publishes() -> None:
+    """When every creator is listed, real channels named with a URL
+    appear. A YouTube URL is public metadata, not a secret, so blocking
+    it would veto real data over a string that leaks nothing — this was
+    a real build failure at the publish-everyone threshold."""
+    artifact = GeneratedArtifact(
+        path="releases/r1/countries/US.json",
+        payload={
+            "rows": [
+                {
+                    "publicChannelKey": "pk_" + "0" * 32,
+                    "displayName": "youtube.com/@somecreator",
+                }
+            ]
+        },
+    ).finalize()
+
+    assert artifact.digest
+
+
+def test_a_credential_in_a_name_field_is_still_blocked() -> None:
+    """The name exemption covers URLs, not secrets. A raw channel id or
+    an API key smuggled into a display name must still be refused."""
+    for leaked in (
+        "UCuAXFkgsw1L7xaCfnd5JJOw",
+        "AIza" + "F" * 35,
+        "sb_secret_" + "c" * 30,
+    ):
+        with pytest.raises(DisclosureViolation):
+            GeneratedArtifact(
+                path="releases/r1/countries/US.json",
+                payload={"rows": [{"publicChannelKey": "pk_x", "displayName": leaked}]},
+            ).finalize()
+
+
+def test_a_youtube_url_outside_a_name_is_still_refused() -> None:
+    """The exemption is scoped to name fields. A URL in an ordinary data
+    value has no legitimate reason to be there."""
+    with pytest.raises(DisclosureViolation):
+        GeneratedArtifact(
+            path="releases/r1/overview.json",
+            payload={"note": "see youtube.com/watch?v=abc"},
+        ).finalize()
+
+
 # --- Requirement 8.3: gates fail closed -----------------------------------
 
 

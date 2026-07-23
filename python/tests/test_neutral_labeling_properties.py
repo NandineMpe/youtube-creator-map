@@ -295,3 +295,40 @@ def test_the_failure_names_a_path_and_a_class(claim: str) -> None:
     reason = result.reasons[0]
     assert "summary.note" in reason
     assert "claim" in reason
+
+
+# --- Property: a channel's own name is not the project's claim ------------
+
+
+def test_a_display_name_containing_a_claim_word_is_not_flagged() -> None:
+    """The exemption this file's gate learned at the publish-everyone
+    threshold. A channel named with a claim-shaped word is public
+    metadata quoted verbatim, not the project asserting anything, so
+    flagging it would block the release over a string the project did
+    not write."""
+    for name in (
+        "Grand Theft Auto Fan",
+        "Life in Japan",
+        "The Piracy Podcast",
+        "Illegal Moves Chess",
+        "Trained On Vinyl",
+    ):
+        payload = {"rows": [{"displayName": name, "representedVideoCount": 3}]}
+        assert gate_neutral_language(candidate_with(payload)).outcome is GateOutcome.PASSED, name
+
+
+def test_a_claim_outside_a_name_field_is_still_flagged() -> None:
+    """The exemption is scoped to name fields. The project's own copy
+    still cannot assert a prohibited claim."""
+    payload = {"summary": "the model was trained on these videos"}
+
+    assert gate_neutral_language(candidate_with(payload)).outcome is GateOutcome.FAILED
+
+
+def test_a_claim_nested_under_a_name_field_key_is_still_flagged() -> None:
+    """The exemption applies to the string value directly under a name
+    key, not to arbitrary nesting below it — a name is a scalar."""
+    # A dict under displayName is not a name; its inner prose is still copy.
+    payload = {"displayName": {"note": "the model was trained on these videos"}}
+
+    assert gate_neutral_language(candidate_with(payload)).outcome is GateOutcome.FAILED

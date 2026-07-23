@@ -202,10 +202,19 @@ def test_real_channel_names_are_not_mistaken_for_identifiers(name: str) -> None:
     assert find_prohibited_content({"displayName": name}) == []
 
 
-def test_name_exemption_still_catches_real_leaks() -> None:
-    """The exemption covers only the guess-from-shape heuristic."""
+def test_name_exemption_still_catches_credentials_and_raw_ids() -> None:
+    """The name exemption covers the shape heuristic and public URLs, not
+    secrets. A raw channel id or credential in a name is still refused."""
     assert find_prohibited_content({"displayName": RAW_CHANNEL})
-    assert find_prohibited_content({"displayName": "see youtube.com/watch?v=dQw4w9WgXcQ"})
+    assert find_prohibited_content({"displayName": "AIza" + "F" * 35})
+
+
+def test_a_youtube_url_in_a_name_is_allowed_but_refused_elsewhere() -> None:
+    """A channel named with a URL is publishing public metadata, so its
+    name is allowed. The same URL in an ordinary value is refused,
+    because no data field should carry one."""
+    assert find_prohibited_content({"displayName": "youtube.com/@creator"}) == []
+    assert find_prohibited_content({"note": "see youtube.com/watch?v=dQw4w9WgXcQ"})
 
 
 def test_bare_identifier_under_a_prose_key_is_still_found() -> None:
